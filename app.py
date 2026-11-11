@@ -739,14 +739,37 @@ st.set_page_config(
 # ==========================================================================
 # Design system
 # ==========================================================================
-INK = "#1d2a2e"
-MUTED = "#5b6b70"
-TEAL = "#1f6f78"
-AMBER = "#d99a00"
-RED = "#c8553d"
-PAPER = "#fbfaf7"
+def _theme_type() -> str:
+    """'dark' or 'light', following the visitor's Streamlit theme (system setting by default)."""
+    try:
+        t = st.context.theme.type
+        return "dark" if t == "dark" else "light"
+    except Exception:
+        return "light"
+
+
+DARK = _theme_type() == "dark"
+
+# OAU-inspired palette: deep navy and gold, with a clear red for "bad" and green for "good".
+if DARK:
+    PAPER, SURFACE, SURFACE2 = "#0e1524", "#151f33", "#1d2a42"
+    INK, MUTED, LINE = "#e8edf6", "#9fb0c8", "rgba(232,237,246,.10)"
+    TEAL, AMBER, RED, GREEN = "#7aa7ec", "#e6bb57", "#f07b6b", "#5fc08f"      # primary, accent, bad, good
+    NEUTRAL, NEUTRAL2 = "#55647d", "#3a4760"
+    PRIMARY_SOFT, ACCENT_SOFT = "rgba(122,167,236,.18)", "rgba(230,187,87,.18)"
+else:
+    PAPER, SURFACE, SURFACE2 = "#f6f7fb", "#ffffff", "#eef1f7"
+    INK, MUTED, LINE = "#14213d", "#5b6880", "rgba(20,33,61,.08)"
+    TEAL, AMBER, RED, GREEN = "#1b3f7a", "#c8952a", "#c2412f", "#2f8a5f"
+    NEUTRAL, NEUTRAL2 = "#b8c1d1", "#d9dfea"
+    PRIMARY_SOFT, ACCENT_SOFT = "rgba(27,63,122,.08)", "rgba(200,149,42,.12)"
+NAVY, GOLD = "#12305f", "#d4a437"   # fixed brand colours for the front-page band
 TYPE_COLORS = {"CNG bus": TEAL, "Keke": AMBER}
-BLOCK_COLORS = {"AM": "#3b7dd8", "MD": "#8a63d2", "PM": RED}
+BLOCK_COLORS = {"AM": "#5b8bd6" if DARK else "#3567b0", "MD": "#a58be0" if DARK else "#7b5cc4", "PM": RED}
+SEQ = [[0, SURFACE2], [0.45, AMBER], [1, RED]]          # low → high (queues)
+SEQ_BLUE = [[0, SURFACE2], [1, TEAL]]                    # low → high (gaps, counts)
+DIV = [[0, GREEN], [0.5, SURFACE2], [1, RED]]            # below 1 good, above 1 bad
+DIV_CORR = [[0, TEAL], [0.5, SURFACE2], [1, RED]]
 DAY_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 FONT = "Inter, -apple-system, Segoe UI, sans-serif"
 
@@ -754,79 +777,107 @@ st.markdown(
     f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap');
-html, body, [class*="css"], .stMarkdown, p, li, label, input, textarea, button {{
-    font-family: {FONT};
-}}
-.block-container {{ padding-top: 4.2rem; padding-bottom: 1rem; max-width: 1240px; }}
-h1, h2, h3, .serif {{ font-family: 'Source Serif 4', Georgia, serif !important; color: {INK}; letter-spacing: -0.01em; }}
+:root {{ --paper:{PAPER}; --surface:{SURFACE}; --surface2:{SURFACE2}; --ink:{INK}; --muted:{MUTED}; --line:{LINE};
+         --primary:{TEAL}; --accent:{AMBER}; --bad:{RED}; --psoft:{PRIMARY_SOFT}; --asoft:{ACCENT_SOFT}; }}
+html, body, [class*="css"], .stMarkdown, p, li, label, input, textarea, button {{ font-family: {FONT}; }}
+.stApp {{ background: var(--paper); }}
+[data-testid="stSidebar"] {{ background: var(--surface2); }}
+[data-testid="stHeader"] {{ background: transparent; }}
+.block-container {{ padding-top: 3.4rem; padding-bottom: 1rem; max-width: 1180px; }}
+h1, h2, h3, .serif {{ font-family: 'Source Serif 4', Georgia, serif !important; color: var(--ink); letter-spacing: -0.01em; }}
 h1 {{ font-weight: 700 !important; }}
-h2 {{ font-weight: 600 !important; margin-top: 2.4rem !important; padding-top: .6rem;
-      border-top: 1px solid rgba(0,0,0,.08); }}
-h3 {{ font-weight: 600 !important; margin-top: 1.4rem !important; }}
-.article p, .article li {{ font-size: 1.04rem; line-height: 1.7; color: #26363b; }}
-.kicker {{ text-transform: uppercase; letter-spacing: .14em; font-size: .78rem; font-weight: 600; color: {TEAL}; }}
-.dek {{ font-family: 'Source Serif 4', Georgia, serif; font-size: 1.28rem; line-height: 1.55; color: #34474d; max-width: 60rem; }}
-.byline {{ color: {MUTED}; font-size: .92rem; margin: .6rem 0 1.4rem; }}
-div[data-testid="stMetric"] {{
-    background: white; border: 1px solid rgba(31,111,120,.16); border-radius: 12px;
-    padding: 12px 16px; box-shadow: 0 1px 2px rgba(0,0,0,.03);
-}}
-div[data-testid="stMetricLabel"] p {{ font-size: .82rem; color: {MUTED}; }}
-div[data-testid="stMetricValue"] {{ font-family: 'Source Serif 4', Georgia, serif; color: {INK}; font-size: 1.85rem; }}
-.explain {{ display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin: -.4rem 0 1.6rem;
-    border: 1px solid rgba(31,111,120,.18); border-radius: 12px; overflow: hidden; background: white; }}
-.explain > div {{ padding: .85rem 1.05rem; font-size: .93rem; line-height: 1.55; color: #2c3c41; }}
-.explain > div:first-child {{ background: rgba(31,111,120,.05); border-right: 1px solid rgba(31,111,120,.14); }}
-.explain b.lbl {{ display: block; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: {TEAL}; margin-bottom: .25rem; }}
-@media (max-width: 760px) {{ .explain {{ grid-template-columns: 1fr; }}
-    .explain > div:first-child {{ border-right: none; border-bottom: 1px solid rgba(31,111,120,.14); }} }}
-.callout {{ border-left: 4px solid {TEAL}; background: rgba(31,111,120,.06); padding: .9rem 1.1rem;
-    border-radius: 0 10px 10px 0; margin: 1rem 0 1.4rem; font-size: 1rem; line-height: 1.6; }}
-.callout.warn {{ border-left-color: {AMBER}; background: rgba(217,154,0,.08); }}
-.pipeline {{ display: flex; flex-wrap: wrap; gap: .5rem; align-items: stretch; margin: .6rem 0 1.4rem; }}
-.pipeline .step {{ flex: 1 1 150px; background: white; border: 1px solid rgba(0,0,0,.08); border-radius: 12px; padding: .75rem .9rem; }}
-.pipeline .step b {{ display:block; color: {TEAL}; font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; margin-bottom: .2rem; }}
-.pipeline .step span {{ font-size: .9rem; color: #33444a; line-height: 1.45; }}
-.pipeline .arrow {{ align-self: center; color: {MUTED}; font-size: 1.3rem; }}
-.sheet-card {{ background: white; border: 1px solid rgba(0,0,0,.08); border-radius: 12px; padding: 1rem 1.1rem; height: 100%; }}
-.sheet-card h4 {{ margin: 0 0 .35rem; font-family: 'Source Serif 4', Georgia, serif; font-size: 1.08rem; color: {INK}; }}
-.sheet-card .meta {{ font-size: .8rem; color: {TEAL}; font-weight: 600; margin-bottom: .4rem; }}
-.sheet-card p {{ font-size: .92rem; line-height: 1.55; margin: 0; color: #33444a; }}
-.team-card {{ background: white; border: 1px solid rgba(0,0,0,.08); border-radius: 14px; padding: 1rem 1.1rem; margin-bottom: .9rem; min-height: 150px; }}
-.team-card .avatar {{ width: 42px; height: 42px; border-radius: 50%; background: {TEAL}; color: white;
-    display: inline-flex; align-items: center; justify-content: center; font-weight: 700; margin-bottom: .5rem; }}
-.team-card .nm {{ font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; font-size: 1.1rem; color: {INK}; }}
-.team-card .rl {{ font-size: .8rem; color: {TEAL}; font-weight: 600; margin-bottom: .35rem; }}
-.team-card .ct {{ font-size: .9rem; color: #33444a; line-height: 1.5; }}
-.site-footer {{ margin-top: 3rem; padding: 1.4rem 0 .4rem; border-top: 1px solid rgba(0,0,0,.1); color: {MUTED}; font-size: .86rem; line-height: 1.6; }}
-.site-footer b {{ color: {INK}; }}
-table.metrics {{ width: 100%; border-collapse: collapse; font-size: .93rem; margin: .4rem 0 1.4rem; }}
-table.metrics th {{ text-align: left; font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: {TEAL}; border-bottom: 2px solid rgba(31,111,120,.3); padding: .5rem .6rem; }}
-table.metrics td {{ border-bottom: 1px solid rgba(0,0,0,.07); padding: .6rem; vertical-align: top; line-height: 1.5; color: #2c3c41; }}
-table.metrics td:first-child {{ font-weight: 600; color: {INK}; white-space: nowrap; }}
-.takeaway {{ border: 1px solid rgba(31,111,120,.25); background: linear-gradient(90deg, rgba(31,111,120,.10), rgba(31,111,120,.02));
-    border-radius: 12px; padding: .8rem 1.1rem; margin: .2rem 0 1.2rem; font-size: 1.02rem; line-height: 1.55; color: {INK}; }}
-.takeaway b.lbl {{ display:block; font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:{TEAL}; margin-bottom:.2rem; }}
-.source-tag {{ display:inline-block; font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
-    padding:.15rem .55rem; border-radius:999px; margin-right:.4rem; vertical-align:middle; }}
-.source-tag.field {{ background:#1f6f78; color:white; }}
-.source-tag.model {{ background:#f3e2b5; color:#6b4e00; }}
-.anchor {{ position: relative; top: -70px; }}
-.toc a {{ display:block; padding:.22rem 0; color:{INK}; text-decoration:none; font-size:.92rem; }}
-.toc a:hover {{ color:{TEAL}; }}
-.toc a.sub {{ padding-left: .9rem; font-size:.84rem; color:{MUTED}; }}
-[data-testid="stAppDeployButton"], .stAppDeployButton {{ display:none !important; }}
+h2 {{ font-weight: 600 !important; margin-top: 3.2rem !important; font-size: 1.85rem !important; }}
+h3 {{ font-weight: 600 !important; margin-top: 1.8rem !important; font-size: 1.3rem !important; }}
+.article p, .article li {{ font-size: 1.04rem; line-height: 1.72; color: var(--ink); }}
+.kicker {{ text-transform: uppercase; letter-spacing: .16em; font-size: .76rem; font-weight: 700; color: var(--accent); }}
+.dek {{ font-family: 'Source Serif 4', Georgia, serif; font-size: 1.22rem; line-height: 1.55; color: var(--muted); max-width: 58rem; }}
+.byline {{ color: var(--muted); font-size: .9rem; margin: .5rem 0 1.2rem; line-height: 1.5; }}
+
+/* ---- front page band ---- */
+.hero {{ background: radial-gradient(1200px 400px at 85% -10%, rgba(212,164,55,.28), transparent 60%),
+         linear-gradient(135deg, {NAVY} 0%, #1a427f 70%, #21508f 100%);
+         color: #fff; border-radius: 22px; padding: 2.6rem 2.6rem 2.2rem; margin: .2rem 0 1.6rem; }}
+.hero .kick {{ color: {GOLD}; text-transform: uppercase; letter-spacing: .18em; font-size: .78rem; font-weight: 700; }}
+.hero h1 {{ color: #fff !important; font-size: 2.7rem !important; line-height: 1.12 !important; margin: .5rem 0 .8rem !important; max-width: 46rem; }}
+.hero .lede {{ font-family: 'Source Serif 4', Georgia, serif; font-size: 1.2rem; line-height: 1.55; color: rgba(255,255,255,.86); max-width: 44rem; }}
+.hero .stats {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.8rem 0 1.6rem; }}
+.hero .stat {{ background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: 14px; padding: 1rem 1.1rem; }}
+.hero .stat .n {{ font-family: 'Source Serif 4', Georgia, serif; font-size: 2.4rem; font-weight: 700; color: {GOLD}; line-height: 1; }}
+.hero .stat .l {{ font-size: .9rem; color: rgba(255,255,255,.85); margin-top: .45rem; line-height: 1.4; }}
+.hero .stat .s {{ font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.6); margin-top: .5rem; }}
+.hero .cta {{ display: flex; flex-wrap: wrap; gap: .7rem; }}
+.hero .cta a {{ text-decoration: none; font-weight: 600; font-size: .95rem; padding: .62rem 1.15rem; border-radius: 999px; }}
+.hero .cta a.main {{ background: {GOLD}; color: {NAVY}; }}
+.hero .cta a.ghost {{ border: 1px solid rgba(255,255,255,.45); color: #fff; }}
+.hero .cta a:hover {{ filter: brightness(1.08); }}
+.hero .names {{ color: rgba(255,255,255,.6); font-size: .82rem; margin-top: 1.3rem; line-height: 1.5; }}
+
+/* ---- calm components ---- */
+div[data-testid="stMetric"] {{ background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; }}
 [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] * {{ white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }}
-[data-testid="stMetricLabel"] p {{ line-height: 1.25 !important; }}
-div[data-testid="stPlotlyChart"] {{ border-radius: 12px; }}
+[data-testid="stMetricLabel"] p {{ line-height: 1.25 !important; color: var(--muted); font-size: .82rem; }}
+div[data-testid="stMetricValue"] {{ font-family: 'Source Serif 4', Georgia, serif; color: var(--ink); font-size: 1.8rem; }}
+.explain {{ margin: -.5rem 0 1.8rem; padding: 0 .2rem; }}
+.explain .what {{ font-size: .95rem; line-height: 1.6; color: var(--ink); border-left: 3px solid var(--accent); padding: .1rem 0 .1rem .9rem; }}
+.explain .what b.lbl {{ color: var(--accent); font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; margin-right: .45rem; }}
+.explain details {{ margin: .45rem 0 0 1.05rem; }}
+.explain summary {{ cursor: pointer; font-size: .82rem; color: var(--muted); list-style: none; }}
+.explain summary::-webkit-details-marker {{ display: none; }}
+.explain summary::before {{ content: "＋ "; color: var(--primary); font-weight: 700; }}
+.explain details[open] summary::before {{ content: "－ "; }}
+.explain details div {{ font-size: .88rem; line-height: 1.55; color: var(--muted); margin-top: .35rem; max-width: 60rem; }}
+.takeaway {{ border-left: 4px solid var(--accent); background: var(--asoft); border-radius: 0 12px 12px 0;
+             padding: .75rem 1.1rem; margin: .4rem 0 1.3rem; font-size: 1.04rem; line-height: 1.55; color: var(--ink); }}
+.takeaway b.lbl {{ display: none; }}
+.callout {{ border-left: 4px solid var(--primary); background: var(--psoft); padding: .85rem 1.1rem; border-radius: 0 12px 12px 0; margin: 1rem 0 1.4rem; line-height: 1.6; color: var(--ink); }}
+.callout.warn {{ border-left-color: var(--accent); background: var(--asoft); }}
+.pipeline {{ display: flex; flex-wrap: wrap; gap: .5rem; align-items: stretch; margin: .6rem 0 1.4rem; }}
+.pipeline .step {{ flex: 1 1 150px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: .75rem .9rem; }}
+.pipeline .step b {{ display:block; color: var(--primary); font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; margin-bottom: .2rem; }}
+.pipeline .step span {{ font-size: .9rem; color: var(--muted); line-height: 1.45; }}
+.pipeline .arrow {{ align-self: center; color: var(--muted); font-size: 1.3rem; }}
+.cards3 {{ display:grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin: .4rem 0 1.4rem; }}
+.card {{ background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 1.1rem 1.2rem; }}
+.card .n {{ font-family:'Source Serif 4', Georgia, serif; font-size: 2rem; font-weight:700; color: var(--ink); line-height:1; }}
+.card .t {{ font-weight:600; color: var(--ink); margin:.45rem 0 .25rem; }}
+.card .d {{ font-size:.9rem; color: var(--muted); line-height:1.5; }}
+.card.field {{ border-top: 4px solid var(--primary); }} .card.model {{ border-top: 4px solid var(--accent); }} .card.survey {{ border-top: 4px solid var(--muted); }}
+.team-card {{ background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1rem 1.1rem; margin-bottom: .9rem; min-height: 150px; }}
+.team-card .avatar {{ width: 42px; height: 42px; border-radius: 50%; background: var(--primary); color: var(--surface);
+    display: inline-flex; align-items: center; justify-content: center; font-weight: 700; margin-bottom: .5rem; }}
+.team-card .nm {{ font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; font-size: 1.08rem; color: var(--ink); }}
+.team-card .rl {{ font-size: .8rem; color: var(--accent); font-weight: 600; margin-bottom: .35rem; }}
+.team-card .ct {{ font-size: .9rem; color: var(--muted); line-height: 1.5; }}
+.site-footer {{ margin-top: 3.4rem; padding: 1.4rem 0 .4rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; line-height: 1.6; }}
+.site-footer b {{ color: var(--ink); }}
+table.metrics {{ width: 100%; border-collapse: collapse; font-size: .93rem; margin: .4rem 0 1.4rem; }}
+table.metrics th {{ text-align: left; font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); border-bottom: 2px solid var(--line); padding: .5rem .6rem; }}
+table.metrics td {{ border-bottom: 1px solid var(--line); padding: .6rem; vertical-align: top; line-height: 1.5; color: var(--ink); }}
+table.metrics td:first-child {{ font-weight: 600; }}
+.source-tag {{ display:inline-block; font-size:.68rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    padding:.14rem .55rem; border-radius:999px; margin-right:.4rem; vertical-align:middle; }}
+.source-tag.field {{ background: var(--primary); color: var(--surface); }}
+.source-tag.model {{ background: var(--asoft); color: var(--accent); border: 1px solid var(--accent); }}
+.anchor {{ position: relative; top: -70px; }}
+.toc a {{ display:block; padding:.2rem 0; color: var(--ink); text-decoration:none; font-size:.9rem; }}
+.toc a:hover {{ color: var(--accent); }}
+.toc a.sub {{ padding-left: .9rem; font-size:.82rem; color: var(--muted); }}
+.limits {{ background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.3rem; margin: .6rem 0 1.2rem; }}
+.limits li {{ margin: .25rem 0; color: var(--ink); }}
+[data-testid="stExpander"] details {{ border-radius: 12px !important; border-color: var(--line) !important; }}
+[data-testid="stExpander"] summary p {{ font-weight: 600; color: var(--primary); }}
+[data-testid="stAppDeployButton"], .stAppDeployButton {{ display:none !important; }}
+@media (max-width: 760px) {{
+  .hero {{ padding: 1.6rem 1.3rem; border-radius: 16px; }}
+  .hero h1 {{ font-size: 1.9rem !important; }}
+  .hero .lede {{ font-size: 1.04rem; }}
+  .hero .stats, .cards3 {{ grid-template-columns: 1fr; }}
+  .hero .stat .n {{ font-size: 2rem; }}
+}}
 @media (max-width: 640px) {{
-  .block-container {{ padding-left: 1rem !important; padding-right: 1rem !important; padding-top: 3.6rem !important; }}
-  h1 {{ font-size: 1.8rem !important; line-height: 1.2 !important; }}
-  h2 {{ font-size: 1.4rem !important; }}
-  h3 {{ font-size: 1.15rem !important; }}
-  .dek {{ font-size: 1.04rem !important; }}
+  .block-container {{ padding-left: 1rem !important; padding-right: 1rem !important; padding-top: 3.4rem !important; }}
+  h2 {{ font-size: 1.45rem !important; }} h3 {{ font-size: 1.15rem !important; }}
   div[data-testid="stMetricValue"] {{ font-size: 1.45rem !important; }}
-  div[data-testid="stMetric"] {{ padding: 8px 10px !important; }}
   table.metrics {{ display:block; overflow-x:auto; font-size:.85rem; }}
   .pipeline .arrow {{ display:none; }}
   .article p, .article li {{ font-size: .98rem; }}
@@ -843,28 +894,36 @@ def style(fig: go.Figure, height: int = 420, title: str | None = None,
     if title and subtitle:
         text += f"<br><span style='font-size:13px;color:{MUTED}'>{subtitle}</span>"
     fig.update_layout(
-        template="plotly_white",
+        template="plotly_dark" if DARK else "plotly_white",
         height=height,
         font=dict(family=FONT, size=13, color=INK),
         margin=dict(l=10, r=20, t=100 if subtitle else 80, b=10),
         legend=dict(orientation="h", yanchor="bottom", y=1.01, x=0, title_text=""),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        hoverlabel=dict(font_family=FONT),
+        hoverlabel=dict(font_family=FONT, bgcolor=SURFACE, font_color=INK, bordercolor=LINE),
     )
     if text:
         fig.update_layout(title=dict(text=text, x=0, y=0.97, yanchor="top", yref="container",
                                      font=dict(size=17, family="Source Serif 4, Georgia, serif")))
-    fig.update_xaxes(gridcolor="rgba(0,0,0,.06)", zeroline=False, fixedrange=True, automargin=True)
-    fig.update_yaxes(gridcolor="rgba(0,0,0,.06)", zeroline=False, fixedrange=True, automargin=True)
+    fig.update_xaxes(gridcolor=LINE, linecolor=LINE, zeroline=False, fixedrange=True, automargin=True,
+                     tickfont=dict(color=MUTED), title_font=dict(color=MUTED))
+    fig.update_yaxes(gridcolor=LINE, linecolor=LINE, zeroline=False, fixedrange=True, automargin=True,
+                     tickfont=dict(color=MUTED), title_font=dict(color=MUTED))
+    fig.update_layout(legend_font_color=INK, coloraxis_colorbar=dict(tickfont=dict(color=MUTED), title_font=dict(color=MUTED)))
     fig.update_layout(dragmode=False)
     return fig
 
 
+_CHART_N = [0]
+
+
 def show(fig: go.Figure) -> None:
-    # No toolbar and no zoom: charts stay readable when scrolled past on a phone
-    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "scrollZoom": False,
-                                                  "doubleClick": False, "responsive": True})
+    # No toolbar and no zoom: charts stay readable when scrolled past on a phone.
+    # Each chart gets its own key so the same figure can appear twice on a page.
+    _CHART_N[0] += 1
+    st.plotly_chart(fig, width="stretch", key=f"chart_{_CHART_N[0]}",
+                    config={"displayModeBar": False, "scrollZoom": False, "doubleClick": False, "responsive": True})
 
 
 def takeaway(text: str) -> None:
@@ -877,10 +936,10 @@ def section(title: str, anchor: str, level: int = 2) -> None:
 
 
 def explain(how: str, what: str) -> None:
-    """Plain-language 'how to read' / 'what it shows' panel under a chart."""
+    """Under each chart: the finding stays visible; how to read it folds away."""
     st.markdown(
-        f"<div class='explain'><div><b class='lbl'>How to read this chart</b>{how}</div>"
-        f"<div><b class='lbl'>What it shows</b>{what}</div></div>",
+        f"<div class='explain'><div class='what'><b class='lbl'>What it shows</b>{what}</div>"
+        f"<details><summary>How to read this chart</summary><div>{how}</div></details></div>",
         unsafe_allow_html=True,
     )
 
@@ -900,9 +959,29 @@ def hh(h: float) -> str:
 # ==========================================================================
 # Data
 # ==========================================================================
+# Bump this whenever the data loading changes, so Streamlit never reuses data cached by an
+# older version of the app (a stale cache once caused a KeyError after an update).
+DATA_VERSION = "2026-11-11-source-split"
+
+
+@st.cache_resource
+def _cache_stamp() -> dict:
+    return {"version": None}
+
+
+_stamp = _cache_stamp()
+if _stamp["version"] != DATA_VERSION:  # new code deployed: drop everything cached by the old one
+    st.cache_data.clear()
+    _stamp["version"] = DATA_VERSION
+
+
 @st.cache_data(show_spinner="Loading field observations…")
-def frames() -> dict[str, pd.DataFrame]:
-    return D.load_frames()
+def frames(version: str = DATA_VERSION) -> dict[str, pd.DataFrame]:
+    out = D.load_frames()
+    for f in out.values():  # safety net: always have the source column
+        if "source" not in f:
+            f["source"] = np.where(f["Entered by"].notna(), "Field", "Estimated") if "Entered by" in f else "Estimated"
+    return out
 
 
 REQUIRED = ["B1_Queue_and_Demand.csv", "B2_Wait_Sample.csv", "C_Vehicle_and_Trip.csv"]
@@ -936,7 +1015,7 @@ def team() -> pd.DataFrame:
         return pd.DataFrame(columns=["name", "role", "contributions"])
 
 
-F = frames()
+F = frames(DATA_VERSION)
 # Model-estimated main week (26 Oct – 1 Nov): used for the detailed patterns
 Q_ALL = F["queue"][F["queue"]["valid_route"] & F["queue"]["source"].eq("Estimated")]
 W_ALL = F["wait"][F["wait"]["valid_route"] & F["wait"]["source"].eq("Estimated")]
@@ -996,7 +1075,7 @@ def fig_ecdf(c: pd.DataFrame) -> go.Figure:
     fig = px.ecdf(c, x="wait_minutes", color="Type used", color_discrete_map=TYPE_COLORS,
                   labels={"wait_minutes": "minutes waited", "Type used": "Type"})
     for t in (5, 10, 15):
-        fig.add_vline(x=t, line_dash="dot", line_color="#999",
+        fig.add_vline(x=t, line_dash="dot", line_color=MUTED,
                       annotation_text=f"{t} min", annotation_position="bottom right")
     fig.update_yaxes(title="share already boarded", tickformat=".0%")
     return style(fig, 400, "Share of passengers boarded by each minute",
@@ -1031,7 +1110,7 @@ def fig_boarding(c: pd.DataFrame, thr: int = 10) -> go.Figure:
         y=bp["route"], x=bp["share"], orientation="h",
         marker=dict(color=bp["share"], colorscale=[[0, RED], [0.5, AMBER], [1, TEAL]], cmin=0.4, cmax=1),
         error_x=dict(type="data", symmetric=False, array=bp["hi"] - bp["share"],
-                     arrayminus=bp["share"] - bp["lo"], color="#555", thickness=1.4),
+                     arrayminus=bp["share"] - bp["lo"], color=MUTED, thickness=1.4),
         text=bp["share"].map("{:.0%}".format), textposition="inside", insidetextanchor="start",
         textfont=dict(color="white", size=12),
         customdata=bp[["n", "lo", "hi"]],
@@ -1070,7 +1149,7 @@ def fig_queue_rhythm(q: pd.DataFrame) -> go.Figure:
                                    arrivals=("New arrivals (10 min)", "mean")).reset_index()
     fig = go.Figure()
     fig.add_bar(x=g["hour_slot"], y=g["arrivals"] * 6, name="New passengers arriving per hour (avg per stop)",
-                marker_color="rgba(217,154,0,.55)")
+                marker_color=ACCENT_SOFT)
     fig.add_scatter(x=g["hour_slot"], y=g["mean_queue"], name="People standing in the queue (avg, right axis)",
                     mode="lines+markers", line=dict(color=TEAL, width=3), yaxis="y2")
     fig.update_layout(yaxis2=dict(title="people in queue", overlaying="y", side="right", rangemode="tozero",
@@ -1080,7 +1159,7 @@ def fig_queue_rhythm(q: pd.DataFrame) -> go.Figure:
     fig.update_layout(yaxis2=dict(tickformat=".0f"))
     top = g.loc[g["arrivals"].idxmax()]
     fig.add_annotation(x=top["hour_slot"], y=top["arrivals"] * 6, text=f"busiest: {top['arrivals'] * 6:.0f}/hour at {int(top['hour_slot']):02d}:00",
-                       showarrow=True, arrowhead=2, ay=-32, font=dict(size=12, color=INK), bgcolor="rgba(255,255,255,.85)")
+                       showarrow=True, arrowhead=2, ay=-32, font=dict(size=12, color=INK), bgcolor=SURFACE)
     return style(fig, 430, "The daily rhythm", "Demand (bars, left axis) and queue length (line, right axis) through the day")
 
 
@@ -1095,7 +1174,7 @@ def fig_queue_heat(q: pd.DataFrame) -> go.Figure:
     per = queue_by_route_hour(q)
     order = per.groupby("stop_direction")["mean_queue"].max().sort_values(ascending=False).index
     heat = per.pivot(index="stop_direction", columns="hour_slot", values="mean_queue").loc[order]
-    fig = px.imshow(heat, aspect="auto", color_continuous_scale="YlOrRd", text_auto=".0f",
+    fig = px.imshow(heat, aspect="auto", color_continuous_scale=SEQ, text_auto=".0f",
                     labels=dict(x="hour of day", y="", color="avg queue"))
     fig.update_xaxes(dtick=1)
     return style(fig, 480, "Where and when queues build", "Average number of people waiting, by stop-direction and hour")
@@ -1129,7 +1208,7 @@ def fig_friday(q: pd.DataFrame) -> go.Figure:
     sub["Day group"] = np.where(sub["Day"].eq("Friday"), "Friday", "Mon–Thu")
     g = sub.groupby(["Stop", "Day group"])["Queue size"].mean().reset_index()
     fig = px.bar(g, x="Stop", y="Queue size", color="Day group", barmode="group", text_auto=".1f",
-                 color_discrete_map={"Friday": RED, "Mon–Thu": "#9fb4b8"},
+                 color_discrete_map={"Friday": RED, "Mon–Thu": NEUTRAL},
                  labels={"Queue size": "average queue, 13:00–14:30", "Stop": ""})
     return style(fig, 380, "The Friday early-afternoon surge")
 
@@ -1170,11 +1249,11 @@ def fig_vehicle_day(v: pd.DataFrame, q: pd.DataFrame, date, route: str) -> go.Fi
                                   "<br>boarded %{y} of %{customdata[3]:.0f} seats<extra></extra>")
     qq = q[(q["Date"].dt.date == date) & (q["stop_direction"] == route)].sort_values("Time minutes")
     flag = left_behind_flags(vv, qq)
-    fig.add_bar(x=t[~flag], y=-vv.loc[~flag, "left_n"], name="left behind at the kerb", marker_color="rgba(200,85,61,.55)",
+    fig.add_bar(x=t[~flag], y=-vv.loc[~flag, "left_n"], name="left behind at the kerb", marker_color=RED,
                 hovertemplate="%{customdata} left behind<extra></extra>", customdata=vv.loc[~flag, "left_n"])
     if flag.any():
         fig.add_bar(x=t[flag], y=-vv.loc[flag, "left_n"], name="left behind > people in queue (likely entry error)",
-                    marker_color="rgba(90,90,90,.55)", marker_pattern_shape="/",
+                    marker_color=NEUTRAL, marker_pattern_shape="/",
                     hovertemplate="%{customdata} left behind, more than were queuing<extra></extra>", customdata=vv.loc[flag, "left_n"])
     if len(qq):
         fig.add_scatter(x=pd.to_datetime(qq["Time minutes"], unit="m", origin=pd.Timestamp(date)),
@@ -1207,7 +1286,7 @@ def fig_headway(headway: pd.DataFrame) -> go.Figure:
     hw = headway.dropna(subset=["median_headway_min"])
     hw = hw[hw["hour_slot"].le(LAST_HOUR)]
     heat = hw.pivot(index="stop_direction", columns="hour_slot", values="median_headway_min")
-    fig = px.imshow(heat, aspect="auto", color_continuous_scale="Blues", text_auto=".0f",
+    fig = px.imshow(heat, aspect="auto", color_continuous_scale=SEQ_BLUE, text_auto=".0f",
                     labels=dict(x="hour of day", y="", color="minutes"))
     fig.update_xaxes(dtick=1)
     return style(fig, 440, "Minutes between vehicles (headway)", "Typical gap between one vehicle and the next")
@@ -1217,7 +1296,7 @@ def fig_dc(dc: pd.DataFrame) -> go.Figure:
     dc = dc.dropna(subset=["demand_to_capacity_ratio"])
     dc = dc[dc["hour_slot"].le(LAST_HOUR)]
     heat = dc.pivot(index="stop_direction", columns="hour_slot", values="demand_to_capacity_ratio")
-    fig = px.imshow(heat, aspect="auto", color_continuous_scale="RdYlGn_r", zmin=0, zmax=2, text_auto=".1f",
+    fig = px.imshow(heat, aspect="auto", color_continuous_scale=DIV, zmin=0, zmax=2, text_auto=".1f",
                     labels=dict(x="hour of day", y="", color="ratio"))
     fig.update_xaxes(dtick=1)
     return style(fig, 460, "Passengers arriving ÷ seats leaving", "Above 1.0 (red) = more people turn up than there are seats")
@@ -1230,16 +1309,16 @@ def fig_effects(t: pd.DataFrame) -> go.Figure:
     sig = t["p_value"].lt(0.05)
     fig = go.Figure(go.Scatter(
         x=t["effect_size"], y=t["label"], mode="markers",
-        marker=dict(size=13, color=np.where(sig, TEAL, "#aaaaaa")),
+        marker=dict(size=13, color=np.where(sig, TEAL, NEUTRAL)),
         error_x=dict(type="data", symmetric=False,
                      array=(t["effect_size_ci95_high"] - t["effect_size"]).fillna(0),
                      arrayminus=(t["effect_size"] - t["effect_size_ci95_low"]).fillna(0)),
         customdata=t[["effect_size_name", "p_value"]],
         hovertemplate="%{y}<br>%{customdata[0]} = %{x:.2f} · p = %{customdata[1]:.2g}<extra></extra>",
     ))
-    fig.add_vline(x=0, line_color="#999")
+    fig.add_vline(x=0, line_color=MUTED)
     for x, lab in ((0.1, "small"), (0.3, "medium"), (0.5, "large")):
-        fig.add_vline(x=x, line_dash="dot", line_color="#ddd", annotation_text=lab, annotation_position="top")
+        fig.add_vline(x=x, line_dash="dot", line_color=NEUTRAL2, annotation_text=lab, annotation_position="top")
     fig.update_xaxes(title="effect size (0 = no difference, ±1 = complete separation)", range=[-0.45, 1])
     return style(fig, 470, "How big is each difference?", "Dots = effect size; bars = 95% confidence range")
 
@@ -1249,7 +1328,7 @@ def fig_spearman(sp: pd.DataFrame) -> go.Figure:
              "load_factor": "how full vehicles leave", "headway": "gap between vehicles"}
     sp = sp.set_index("variable").rename(index=names, columns=names)
     sp.index.name = None
-    fig = px.imshow(sp, text_auto=".2f", color_continuous_scale="RdBu_r",
+    fig = px.imshow(sp, text_auto=".2f", color_continuous_scale=DIV_CORR,
                     zmin=-1, zmax=1, aspect="auto")
     return style(fig, 430, "Which measures move together?", "Spearman correlation: +1 rise together, −1 opposite, 0 unrelated")
 
@@ -1329,7 +1408,7 @@ def fig_fleet_grid(fl: pd.DataFrame) -> go.Figure:
     piv = g.pivot_table(index="Vehicle ID", columns="day", values="Arrivals logged", aggfunc="sum")
     piv = piv.loc[order["Vehicle ID"], sorted(g["day"].unique(), key=lambda s: pd.to_datetime(
         g.loc[g["day"].eq(s), "Date"].iat[0]))]
-    fig = px.imshow(piv.replace(0, np.nan), aspect="auto", color_continuous_scale="Teal", text_auto=".0f",
+    fig = px.imshow(piv.replace(0, np.nan), aspect="auto", color_continuous_scale=SEQ_BLUE, text_auto=".0f",
                     labels=dict(x="", y="", color="arrivals logged"))
     fig.update_traces(hovertemplate="%{y} · %{x}<br>%{z} arrivals logged<extra></extra>")
     return style(fig, 620, "Which vehicles worked which days (sheet D, rebuilt)",
@@ -1341,7 +1420,7 @@ def fig_validation_days(t: pd.DataFrame) -> go.Figure:
          .reset_index())
     g["day"] = pd.to_datetime(g["Date"]).dt.strftime("%a %d")
     fig = go.Figure()
-    fig.add_bar(x=g["day"], y=g["base"], name="Naive guess (same wait for everyone)", marker_color="#b9c6c9",
+    fig.add_bar(x=g["day"], y=g["base"], name="Naive guess (same wait for everyone)", marker_color=NEUTRAL,
                 text=g["base"].map("{:.1f}".format), textposition="outside")
     fig.add_bar(x=g["day"], y=g["model"], name="Our model (stop, direction, time block, vehicle type)",
                 marker_color=TEAL, text=g["model"].map("{:.1f}".format), textposition="outside")
@@ -1356,7 +1435,7 @@ def fig_calibration(t: pd.DataFrame) -> go.Figure:
     g = t.groupby("bin", observed=True).agg(pred=("p10", "mean"), act=("boarded_10", "mean"), n=("p10", "size")).reset_index()
     fig = go.Figure()
     fig.add_scatter(x=[0.3, 1], y=[0.3, 1], mode="lines", name="perfect prediction",
-                    line=dict(color="#aaa", dash="dot"))
+                    line=dict(color=NEUTRAL, dash="dot"))
     fig.add_scatter(x=g["pred"], y=g["act"], mode="markers+lines", name="our model",
                     marker=dict(size=np.sqrt(g["n"]) / 2.2, color=TEAL), line=dict(color=TEAL),
                     customdata=g["n"], hovertemplate="predicted %{x:.0%} → actually %{y:.0%}<br>%{customdata:,} passengers<extra></extra>")
@@ -1401,7 +1480,7 @@ def pct_cut(w: pd.DataFrame, p: float) -> float:
 
 def fig_survival(curves: dict[str, pd.DataFrame], title: str, subtitle: str | None = None,
                  shade_first: bool = True, colors: list[str] | None = None, xmax: int = 40, field: bool = False) -> go.Figure:
-    colors = colors or [TEAL, RED, AMBER, "#8a63d2", INK]
+    colors = colors or [TEAL, RED, AMBER, BLOCK_COLORS["MD"], INK]
     fig = go.Figure()
     for i, (label, w) in enumerate(curves.items()):
         s = field_survival_input(w) if field else S.survival_input(w)
@@ -1423,13 +1502,13 @@ def fig_survival(curves: dict[str, pd.DataFrame], title: str, subtitle: str | No
         if (i == 0 or len(curves) > 1) and not np.isnan(p90) and p90 <= xmax:
             fig.add_vline(x=p90, line_dash="dot", line_color=colors[i % len(colors)],
                           annotation_text=f"P90 {p90:.0f}", annotation_position="top", annotation_font_color=colors[i % len(colors)])
-    fig.add_hline(y=0.10, line_dash="dot", line_color="#999",
+    fig.add_hline(y=0.10, line_dash="dot", line_color=MUTED,
                   annotation_text="10% still waiting = P90", annotation_position="top right")
-    fig.add_hline(y=0.50, line_dash="dot", line_color="#ccc",
+    fig.add_hline(y=0.50, line_dash="dot", line_color=NEUTRAL,
                   annotation_text="50% = typical wait (P50)", annotation_position="top right")
     fig.update_xaxes(title="minutes since joining the queue", range=[0, xmax], dtick=5)
     fig.update_yaxes(title="share of passengers still waiting", tickformat=".0%", range=[0, 1.02])
-    fig.update_layout(legend=dict(orientation="v", y=0.98, x=0.42, yanchor="top", bgcolor="rgba(255,255,255,.85)"))
+    fig.update_layout(legend=dict(orientation="v", y=0.98, x=0.42, yanchor="top", bgcolor=SURFACE))
     return style(fig, 440, title, subtitle)
 
 
@@ -1439,7 +1518,7 @@ def fig_ladder(t: pd.DataFrame, label: str, title: str, subtitle: str | None = N
     fig = go.Figure()
     for _, r in t.iterrows():
         fig.add_scatter(x=[r["P50"], r["P95"]], y=[r[label]] * 2, mode="lines",
-                        line=dict(color="#c9d4d6", width=8), showlegend=False, hoverinfo="skip")
+                        line=dict(color=NEUTRAL2, width=8), showlegend=False, hoverinfo="skip")
     for p, color, sym in (("P50", TEAL, "circle"), ("P75", AMBER, "circle"), ("P90", RED, "diamond"), ("P95", INK, "line-ns-open")):
         fig.add_scatter(x=t[p], y=t[label], mode="markers", name=p.replace("P", "") + "th percentile" if p != "P50" else "50th (typical)",
                         marker=dict(color=color, size=13 if p != "P95" else 16, symbol=sym, line=dict(width=2 if p == "P95" else 0, color=color)),
@@ -1460,7 +1539,7 @@ def fig_bands(c: pd.DataFrame) -> go.Figure:
     g["share_min"] = g["sum"] / g["sum"].sum()
     g = g.reset_index()
     fig = go.Figure()
-    fig.add_bar(x=g["band"], y=g["share_pax"], name="share of passengers", marker_color="#b9c6c9",
+    fig.add_bar(x=g["band"], y=g["share_pax"], name="share of passengers", marker_color=NEUTRAL,
                 text=g["share_pax"].map("{:.0%}".format), textposition="outside")
     fig.add_bar(x=g["band"], y=g["share_min"], name="share of all minutes spent waiting", marker_color=RED,
                 text=g["share_min"].map("{:.0%}".format), textposition="outside")
@@ -1490,7 +1569,7 @@ def fig_tail_sources(c: pd.DataFrame) -> go.Figure:
     fig.add_bar(y=g["label"], x=g["share"], orientation="h", name="share of slowest-10% waiting minutes",
                 marker_color=RED, text=g["share"].map("{:.0%}".format), textposition="outside")
     fig.add_bar(y=g["label"], x=g["pax_share"], orientation="h", name="share of all passengers",
-                marker_color="#b9c6c9", text=g["pax_share"].map("{:.0%}".format), textposition="outside")
+                marker_color=NEUTRAL, text=g["pax_share"].map("{:.0%}".format), textposition="outside")
     fig.update_layout(barmode="group")
     fig.update_xaxes(tickformat=".0%", range=[0, g["share"].max() * 1.25])
     return style(fig, 470, "Where the slowest 10% of waits happen", "Red = share of the tail’s waiting minutes; grey = share of all passengers")
@@ -1501,7 +1580,7 @@ def fig_sim_check(obs: pd.DataFrame, sim: pd.DataFrame) -> go.Figure:
     m["label"] = m["stop_direction"].str.replace(" -> ", " → ") + " · " + m["Block"]
     hi = float(max(m["P90_o"].max(), m["P90_s"].max())) + 3
     fig = go.Figure()
-    fig.add_scatter(x=[0, hi], y=[0, hi], mode="lines", name="perfect match", line=dict(color="#aaa", dash="dot"))
+    fig.add_scatter(x=[0, hi], y=[0, hi], mode="lines", name="perfect match", line=dict(color=NEUTRAL, dash="dot"))
     fig.add_scatter(x=m["P90_o"], y=m["P90_s"], mode="markers", name="stop-direction × time block",
                     marker=dict(size=11, color=m["Block"].map(BLOCK_COLORS)), text=m["label"],
                     hovertemplate="%{text}<br>observed P90 %{x:.0f} · simulated %{y:.0f}<extra></extra>")
@@ -1569,7 +1648,7 @@ def fig_field_vs_model_load(vf: pd.DataFrame, vm: pd.DataFrame) -> go.Figure:
     fig = go.Figure()
     fig.add_bar(y=g["label"], x=g["field"], orientation="h", name="field records", marker_color=TEAL,
                 text=g.apply(lambda r: f"{r['field']:.0%} (n={r['n_field']})", axis=1), textposition="outside")
-    fig.add_bar(y=g["label"], x=g["model"], orientation="h", name="modelled week", marker_color="#e3c46d",
+    fig.add_bar(y=g["label"], x=g["model"], orientation="h", name="modelled week", marker_color=AMBER,
                 text=g["model"].map("{:.0%}".format), textposition="outside")
     fig.update_layout(barmode="group")
     fig.update_xaxes(tickformat=".0%", range=[0, 1.25], title="average share of seats filled when leaving")
@@ -1681,13 +1760,13 @@ def fig_daily(t: pd.DataFrame) -> go.Figure:
                 hovertemplate="%{x}<br>P90 %{y:.0f} · P50 %{customdata[0]:.0f} · average %{customdata[1]:.1f} min<br>n=%{customdata[2]:,}<extra></extra>")
     fig.update_yaxes(title="P90 wait (minutes)", range=[0, t["P90"].max() * 1.25])
     fig.update_layout(showlegend=False)
-    return style(fig, 360, "Each day is one data point", "P90 wait per day of the modelled week · teal weekdays, red Friday, amber weekend")
+    return style(fig, 360, "Each day is one data point", "P90 wait per day of the modelled week · blue weekdays, red Friday, gold weekend")
 
 
 def fig_dep_waits(dep: pd.DataFrame) -> go.Figure:
     g = dep.groupby("Type used")[["to_board", "to_depart"]].median().reindex(["CNG bus", "Keke"])
     fig = go.Figure()
-    fig.add_bar(x=g.index, y=g["to_board"], name="wait to board", marker_color=["#8fbcc1", "#f0d58f"],
+    fig.add_bar(x=g.index, y=g["to_board"], name="wait to board", marker_color=[PRIMARY_SOFT, ACCENT_SOFT],
                 text=g["to_board"].map("{:.0f} min".format), textposition="outside")
     fig.add_bar(x=g.index, y=g["to_depart"], name="wait until the vehicle leaves", marker_color=[TEAL, AMBER],
                 text=g["to_depart"].map("{:.0f} min".format), textposition="outside")
@@ -1707,7 +1786,7 @@ def fig_route_map(tbl: pd.DataFrame, demand: pd.Series) -> go.Figure:
     fig = go.Figure()
     def colour(p90):
         if pd.isna(p90):
-            return "#b9c6c9"
+            return NEUTRAL
         return TEAL if p90 <= 10 else (AMBER if p90 <= 15 else RED)
     tbl = tbl.set_index("stop_direction")
     dmax = float(demand.max()) if len(demand) else 1
@@ -1737,8 +1816,8 @@ def fig_route_map(tbl: pd.DataFrame, demand: pd.Series) -> go.Figure:
                         showlegend=False, hoverinfo="skip")
         dx_, dy_ = label_shift.get(name, (0, 24))
         fig.add_annotation(x=x, y=y, text=f"<b>{name.title()}</b>", showarrow=False, xshift=dx_, yshift=dy_,
-                           font=dict(size=13, color=INK), bgcolor="rgba(251,250,247,.92)", borderpad=2)
-    for lab, col in (("P90 ≤ 10 min", TEAL), ("P90 10–15 min", AMBER), ("P90 > 15 min", RED), ("not timed", "#b9c6c9")):
+                           font=dict(size=13, color=INK), bgcolor=PAPER, borderpad=2)
+    for lab, col in (("P90 ≤ 10 min", TEAL), ("P90 10–15 min", AMBER), ("P90 > 15 min", RED), ("not timed", NEUTRAL)):
         fig.add_scatter(x=[None], y=[None], mode="lines", line=dict(color=col, width=6), name=lab)
     fig.update_xaxes(visible=False, range=[-0.6, 6.3])
     fig.update_yaxes(visible=False, range=[-0.9, 3.6], scaleanchor="x", scaleratio=1)
@@ -1769,31 +1848,31 @@ SURVEY_Q = {
 # Plain-language explanations reused on the report and dashboard
 HOW = {
     "surv": "Start at the top left: at 0 minutes everyone is still waiting (100%). As minutes pass (left to right) people board and the line falls. Where it crosses 50% is the typical wait (P50); where it crosses 10% is the 90th percentile (P90): only 1 passenger in 10 waits longer. The <b>shaded area under the line equals the average wait</b>, so a smaller area means less total waiting. Unfinished waits are included: they count as “still waiting” until 18:00.",
-    "ladder": "Each row is one group. The four markers show the 50th, 75th, 90th and 95th percentile wait: half of passengers waited less than the teal dot, 90% less than the red diamond, 95% less than the black tick. A long grey bar means waits there are unpredictable. Rows are sorted by P90.",
+    "ladder": "Each row is one group. The four markers show the 50th, 75th, 90th and 95th percentile wait: half of passengers waited less than the blue dot, 90% less than the red diamond, 95% less than the black tick. A long grey bar means waits there are unpredictable. Rows are sorted by P90.",
     "bands": "Passengers are split into four groups by how long they waited: the fastest half, the next quarter, the next 15% and the slowest 10%. Grey bars show what share of <i>passengers</i> each group is; red bars show what share of all <i>minutes spent waiting</i> they account for.",
     "tailsrc": "We took only the slowest 10% of waits and asked where they happened. Red bars are each stop-direction-and-time-block's share of those waiting minutes; grey bars are its share of all passengers. A long red bar beside a short grey one means that place and time produces far more than its fair share of the long waits.",
     "simcheck": "For every stop-direction and time block, we compare the P90 wait we actually timed (bottom axis) with the P90 our simulation produced from the queue counts and vehicle logs alone (left axis). Dots on the dotted line mean a perfect match.",
-    "scen": "Each pair of bars is one option, simulated over the whole observation week. Red = the 90th-percentile wait; teal = the area under the waiting curve, which equals the average wait. Lower is better on both.",
-    "hist": "Each bar counts how many timed passengers waited that many minutes. Teal = CNG bus riders, amber = Keke riders; where they overlap the colour is darker. A tall bar on the left means many people boarded almost immediately.",
+    "scen": "Each pair of bars is one option, simulated over the whole observation week. Red = the 90th-percentile wait; blue = the area under the waiting curve, which equals the average wait. Lower is better on both.",
+    "hist": "Each bar counts how many timed passengers waited that many minutes. Blue = CNG bus riders, gold = Keke riders; where they overlap the colour is darker. A tall bar on the left means many people boarded almost immediately.",
     "ecdf": "Pick a minute on the bottom axis (the dotted lines mark 5, 10 and 15) and read the height of each line: that is the share of passengers who had already boarded by then. The higher and further left a line is, the better the service.",
     "route": "Each row is one stop and the direction of travel (e.g. <i>NEW MARKET → ACADEMICS</i> means people waiting at New Market to go to the academic area). The bar is the average wait; the red tick shows the wait that the unluckiest 10% of passengers met or exceeded.",
     "boarding": "Each bar is the percentage of passengers at that stop-direction who boarded within the threshold. The thin black whisker is the 95% confidence range: the true value is very likely inside it. Short whiskers mean lots of data.",
     "box": "The box covers the middle half of all waits; the line inside is the typical (median) wait; the whiskers stretch to the usual range. Higher boxes mean longer waits.",
     "hour": "Each point is the typical (median) wait for people who joined the queue during that hour, split by the vehicle type they eventually boarded.",
-    "rhythm": "The amber bars (left axis) show how many new passengers arrive at an average stop-direction each hour. The teal line (right axis) shows how many people are standing in the queue at that time. When arrivals rise faster than vehicles take people away, the line climbs.",
+    "rhythm": "The gold bars (left axis) show how many new passengers arrive at an average stop-direction each hour. The blue line (right axis) shows how many people are standing in the queue at that time. When arrivals rise faster than vehicles take people away, the line climbs.",
     "heat": "Rows are stop-directions, columns are hours of the day. Each square shows the average queue size; darker red = longer queue. Read across a row to see a stop's rush hour; read down a column to compare stops at the same time.",
     "rush": "Each line is one stop-direction. The higher the line at a given hour, the more people were queuing then.",
-    "wkend": "Each line shows how many passengers, on average, turned up at a route in each hour. Teal = Monday–Friday, amber = Saturday–Sunday.",
+    "wkend": "Each line shows how many passengers, on average, turned up at a route in each hour. Blue = Monday–Friday, gold = Saturday–Sunday.",
     "friday": "Bars compare the average queue between 13:00 and 14:30 on Fridays (red) with the same window on Monday–Thursday (grey), at New Market and Hall.",
-    "vday": "Every coloured bar pointing <b>up</b> is one vehicle arriving: its height is how many people boarded (teal CNG bus, amber Keke). The red bar pointing <b>down</b> underneath is how many people it left behind because it was full. The dotted line is the queue count taken every 10 minutes. Hover a bar to see the vehicle ID and its arrival and departure times.",
-    "load": "The bar shows how full vehicles were, on average, when they pulled away: 100% (dotted line) means every seat was taken. Teal = CNG bus (13 seats), amber = Keke (5 seats).",
+    "vday": "Every coloured bar pointing <b>up</b> is one vehicle arriving: its height is how many people boarded (blue CNG bus, gold Keke). The red bar pointing <b>down</b> underneath is how many people it left behind because it was full. The dotted line is the queue count taken every 10 minutes. Hover a bar to see the vehicle ID and its arrival and departure times.",
+    "load": "The bar shows how full vehicles were, on average, when they pulled away: 100% (dotted line) means every seat was taken. Blue = CNG bus (13 seats), gold = Keke (5 seats).",
     "left": "For every vehicle that left, we added the people who boarded and the people left standing. This bar is the left-behind share of that total. A person who misses two vehicles is counted twice, so read it as 'how often vehicles leave people behind', not 'how many different people'.",
     "headway": "Each square is the typical number of minutes between one vehicle arriving and the next, for that stop-direction and hour. Pale = vehicles come often; dark blue = long gaps.",
     "dc": "We divided the passengers arriving in an hour by the seats on vehicles departing in that hour. Green (below 1) = enough seats; red (above 1) = more people than seats, so the queue must grow.",
-    "effects": "Each dot is one statistical comparison. The further the dot is from the zero line, the bigger the difference between the two groups. The bar is the 95% confidence range. Teal = statistically significant (p < 0.05); grey = not.",
+    "effects": "Each dot is one statistical comparison. The further the dot is from the zero line, the bigger the difference between the two groups. The bar is the 95% confidence range. Blue = statistically significant (p < 0.05); grey = not.",
     "spearman": "Each square shows how strongly two measures rise and fall together across stop-hours. Dark red near +1 = they rise together; dark blue near −1 = one rises as the other falls; white near 0 = no link.",
-    "perceived": "For each stop, the amber bar is the average wait students <i>said</i> they usually have (survey), and the teal bar is the average wait we actually <i>timed</i> there.",
-    "fleet": "Each bar is one day. The teal part counts the CNG buses and the amber part the Keke that we saw arriving at least once at our stops that day. The red line (right axis) is the share of passengers who boarded within 10 minutes that day.",
+    "perceived": "For each stop, the gold bar is the average wait students <i>said</i> they usually have (survey), and the blue bar is the average wait we actually <i>timed</i> there.",
+    "fleet": "Each bar is one day. The blue part counts the CNG buses and the gold part the Keke that we saw arriving at least once at our stops that day. The red line (right axis) is the share of passengers who boarded within 10 minutes that day.",
     "grid": "Each row is one vehicle (by its ID) and each column a day. A number means we logged that vehicle arriving that many times at our stops; a blank square means it never showed up at our stops that day.",
     "valdays": "For each day we hid that day's data, built the prediction from the other six days, then checked it against every passenger we actually timed on the hidden day. Bars show the average gap between the predicted and the real wait.",
     "calib": "Passengers are grouped by the chance the model gave them of boarding within 10 minutes (bottom axis) and compared with the share who really did (left axis). Points on the dotted line mean the model's percentages can be taken at face value. Bigger dots = more passengers.",
@@ -1821,17 +1900,12 @@ def footer() -> None:
 # PAGE 1: REPORT (article)
 # ==========================================================================
 TOC = [
-    ("summary", "In short", False), ("why", "1. Why we did this", False), ("data", "2. Where the data comes from", False),
-    ("field", "3. What the field records show", False), ("check", "4. Does the modelled week match the field?", False),
-    ("measures", "5. What we measured, and why", False), ("decisions", "6. Decisions and checks", False),
-    ("findings", "7. Patterns in the modelled week", False), ("f-shape", "7.1 The shape of waiting", True),
-    ("f-where", "7.2 Where the long waits happen", True), ("f-10", "7.3 Boarding within 10 minutes", True),
-    ("f-queues", "7.4 When queues build", True), ("f-days", "7.5 Days, Fridays and weekends", True),
-    ("f-seats", "7.6 Are there enough seats?", True), ("f-bunch", "7.7 Bunching", True),
-    ("f-fleet", "7.8 Vehicles on the road", True), ("f-survey", "7.9 What students told us", True),
-    ("f-predict", "7.10 Predicting waits", True), ("f-stats", "7.11 How big are the differences?", True),
-    ("cut", "8. How to cut the 90th percentile", False), ("limits", "9. Limitations", False),
-    ("conclusion", "10. Conclusion and recommendations", False), ("team", "11. Who did what", False),
+    ("summary", "In short", False), ("did", "1. What we did", False), ("field", "2. What we saw ourselves", False),
+    ("check", "3. Does the modelled week match?", False), ("where", "4. Where the long waits are", False),
+    ("why", "5. Why: seats and bunching", False), ("days", "6. Days and Fridays", False),
+    ("cut", "7. How to cut the 90th percentile", False), ("students", "8. What students told us", False),
+    ("limits", "9. What to keep in mind", False), ("conclusion", "10. Conclusion", False), ("team", "11. Who did what", False),
+    ("appendix", "Appendix: method and detail", False),
 ]
 
 
@@ -1868,6 +1942,9 @@ def page_report() -> None:
     peak = per.loc[per["mean_queue"].idxmax()]
     daily_arr = Q_ALL.groupby("Date")["New arrivals (10 min)"].sum()
     over = dc17[dc17["demand_to_capacity_ratio"] > 1]
+    near = dc17[dc17["demand_to_capacity_ratio"] >= 0.95].sort_values(["stop_direction", "hour_slot"])
+    near_txt = "; ".join(f"{r.replace(' -> ', ' → ').title()} " + ", ".join(f"{int(h):02d}:00" for h in g["hour_slot"])
+                         for r, g in near.groupby("stop_direction"))
     fd = fleet_daily(FLEET, Q_ALL, W_ALL)
     scen, sims = scenarios(2)
     base, best = scen.iloc[0], scen.iloc[4]
@@ -1881,6 +1958,7 @@ def page_report() -> None:
     fkm = km_from(fsi)
     f_s10 = fkm.set_index("t").loc[10, "still_waiting"]
     f_p50 = S.km_percentile(fkm, 50)
+    f_p90 = S.km_percentile(fkm, 90)
     f_never = int((~fsi["event"]).sum())
     fvm = vehicle_metrics(V_F)
     f_bscg = fvm[fvm["stop_direction"].eq("BUS STOP -> CAMPUS GATE") & fvm["Type"].eq("CNG bus")]
@@ -1891,381 +1969,309 @@ def page_report() -> None:
     n_model = len(Q_ALL) + len(W_ALL) + len(V_ALL)
     block_name = {"AM": "morning", "MD": "midday", "PM": "evening"}
     nice = lambda r: r.replace(" -> ", " → ").title()
+    names = " · ".join(TEAM["name"].tolist())
 
-    # ---- Masthead -------------------------------------------------------
-    st.markdown("<div class='kicker'>Field study + modelled week · Campus mobility · OAU Ile-Ife</div>", unsafe_allow_html=True)
-    st.markdown("# Waiting for a ride: queues, waits and seats on OAU campus transport")
-    st.markdown(
-        "<div class='dek'>We went to campus stops in pairs and recorded passengers, queues and vehicles by hand. "
-        "To see a whole week at every stop, our workbook fills the hours we could not cover with a model-estimated week. "
-        "This report keeps the two apart: what we saw ourselves, what the modelled week suggests, and what would cut the longest waits.</div>",
-        unsafe_allow_html=True,
-    )
-    names = ", ".join(TEAM["name"].tolist())
-    st.markdown(f"<div class='byline'>By {names}<br>November 2026 · {n_field:,} field records · {n_model:,} modelled records · {len(SURVEY)} survey responses</div>",
-                unsafe_allow_html=True)
-
-    k = st.columns(5)
-    k[0].metric("Field: buses leaving full", f"{f_bscg['load'].mean():.0%}", help=f"Bus Stop → Campus Gate CNG buses, {len(f_bscg)} departures recorded by hand")
-    k[1].metric("Field: still waiting at 10 min", f"{f_s10:.0%}", help=f"Of {len(fsi)} passengers timed by hand at Bus Stop → Campus Gate")
-    k[2].metric("Model: P50 wait", f"{P['P50']:.0f} min", help="Half of passengers in the modelled week waited less than this")
-    k[3].metric("Model: P90 wait", f"{P['P90']:.0f} min", help="1 in 10 passengers in the modelled week waited longer than this")
-    k[4].metric("Model: tail's share of waiting", f"{tail_pct:.0%}", help="Share of all waiting minutes spent by the slowest 10% of passengers")
+    # ---- Front page band ------------------------------------------------
+    st.markdown(f"""
+<div class='hero'>
+  <div class='kick'>OAU campus transport · Field study + modelled week · November 2026</div>
+  <h1>Most rides start fast. The long waits are few, predictable and fixable.</h1>
+  <div class='lede'>We stood at campus stops in pairs, timing passengers and logging every bus and Keke.
+  At the busiest stop, buses left almost full and many people were still waiting after ten minutes, while buses to Hall ran nearly empty.
+  Moving and spacing the vehicles we already have could halve the waiting.</div>
+  <div class='stats'>
+    <div class='stat'><div class='n'>{f_bscg['load'].mean():.0%}</div><div class='l'>of seats filled on buses leaving Bus Stop for Campus Gate</div><div class='s'>Field records</div></div>
+    <div class='stat'><div class='n'>{f_s10:.0%}</div><div class='l'>of passengers we timed were still waiting after 10 minutes</div><div class='s'>Field records</div></div>
+    <div class='stat'><div class='n'>{best['area_change']:.0%}</div><div class='l'>total waiting if 2 buses/hour move to the peaks and vehicles are evenly spaced</div><div class='s'>Simulated, modelled week</div></div>
+  </div>
+  <div class='cta'>
+    <a class='main' href='#summary' target='_self'>Read the report ↓</a>
+    <a class='ghost' href='dashboard' target='_self'>Explore the dashboard</a>
+    <a class='ghost' href='data' target='_self'>Download the data</a>
+  </div>
+  <div class='names'>By {names}</div>
+</div>
+""", unsafe_allow_html=True)
 
     section("In short", "summary", 3)
-    with st.container(border=True):
-        md(f"""
-- {tag('field')} **What we saw ourselves is clear:** at Bus Stop → Campus Gate in the afternoon, buses left **{f_bscg['load'].mean():.0%} full** and left more people behind than they carried. **{f_never} of the {len(fsi)} passengers we timed ({f_never / len(fsi):.0%}) had still not boarded when we stopped.** Buses between Campus Gate and Hall left only about **{f_hall['load'].mean():.0%} full**.
-- {tag('model')} **The modelled week gets the same direction** (crowding on the Bus Stop ↔ Campus Gate corridor, spare seats on the Hall routes) and fills in the detail: half of passengers board within **{P['P50']:.0f} minutes**, but 1 in 10 waits more than **{P['P90']:.0f}**, and that slowest 10% accounts for **{tail_pct:.0%} of all waiting time**, concentrated in a few route-hours.
-- {tag('model')} **It is more optimistic than reality** at the one place we can check closely: it has far fewer people still waiting at Bus Stop on a Sunday afternoon than we saw. So its waits are probably an **under-estimate**.
-- {tag('model')} In a simulation of the modelled week, **moving 2 buses an hour from the quiet Hall routes to the peaks and spacing vehicles evenly cuts P90 from {base['P90']:.0f} to {best['P90']:.0f} minutes and halves total waiting**. The field records point the same way (full buses at Bus Stop, near-empty buses to Hall), but the size of the gain needs a real field week to confirm.
-""", )
-
-    # ---- 1. Why ---------------------------------------------------------
-    section("1. Why we did this", "why")
-    takeaway("Averages hide the problem. We look at the whole spread of waiting time, and especially the slowest trips.")
-    md("""
-Getting around OAU's campus depends on two kinds of shared vehicle: **CNG buses** (13 passengers) and **Keke** tricycles (5 passengers).
-Students complain about long queues, full vehicles driving past and arriving late to lectures, but those complaints are rarely backed by numbers.
-A service where most people board at once but a few wait half an hour has a reassuring average and a lot of angry passengers, so we focus on **percentiles** and the **tail**. Our questions:
-
-1. What did we actually see at the stops?
-2. Does the modelled week agree with what we saw?
-3. What are the 50th, 75th, 90th and 95th percentile waits, and where and when are they worst?
-4. Is there enough capacity, and are vehicles where the passengers are?
-5. What would reduce the 90th percentile and the total time spent waiting?
+    md(f"""
+- {tag('field')} **What we saw ourselves.** At Bus Stop → Campus Gate buses left **{f_bscg['load'].mean():.0%} full** and left more people behind than they carried; **{f_never} of the {len(fsi)} passengers we timed** had not boarded when we stopped. Buses between Campus Gate and Hall left about **{f_hall['load'].mean():.0%} full**.
+- {tag('model')} **The modelled week** shows the same shape across the network: half of passengers board within **{P['P50']:.0f} minutes**, but 1 in 10 waits more than **{P['P90']:.0f}**, and that slowest 10% accounts for **{tail_pct:.0%} of all waiting**, concentrated in a few route-hours. It is **gentler than what we saw**, so its waits are probably too low.
+- {tag('model')} **The fix.** In a simulation, spacing vehicles evenly and moving 2 buses an hour from the Hall routes to the peaks cuts P90 from **{base['P90']:.0f} to {best['P90']:.0f} minutes** and halves total waiting, with **no new vehicles**. A real field week should confirm the size of the gain.
 """)
 
-    # ---- 2. Data --------------------------------------------------------
-    section("2. Where the data comes from", "data")
-    takeaway(f"Two kinds of record sit in one workbook: <b>{n_field:,} rows we recorded by hand</b> and <b>{n_model:,} rows from a model-estimated week</b>. We report them separately.")
+    # ---- 1. What we did ------------------------------------------------
+    section("1. What we did", "did")
     md("""
-**What we recorded ourselves.** We went to the stops **in pairs of two** and wrote everything down on the spot: one person timing, one recording.
-Sheet B2 follows individual passengers from joining the queue to boarding; sheet C logs every vehicle that pulled in (ID, type, arrival and departure time, boarded, got off, left behind, free seats); sheet B1 counts the queue and new arrivals.
-Nothing comes from GPS, an app or the operators.
-
-**The modelled week.** One week of hand counting at five stops from 08:00 to 18:00 was beyond our team, so the workbook includes a **model-estimated week (Monday 26 October – Sunday 1 November 2026)** that fills every stop and hour the field work did not cover.
-Its header says so (“rows marked ‘Estimated (model)’ only fill times and stops the field work did not cover”), but the shading that marked those rows was lost when the sheet was exported.
-
-**How we told them apart.** Every field row has the recorder's name in **“Entered by”**; every estimated row has only a **“Roster pair (reference)”**. No row has both. The estimated week is also visibly regular: 99% of its queue counts fall exactly on the 10-minute mark, and boarded passengers balance arrivals almost perfectly on every route and day. The team confirmed the split.
+Getting around OAU depends on **CNG buses** (13 seats) and **Keke** tricycles (5 seats). We went to the stops **in pairs**, one person timing and one recording, and wrote down passengers' waits, queue sizes and every vehicle that pulled in. Covering every stop for a full week by hand was beyond our team, so the workbook also contains a **model-estimated week** that fills the stops and hours we did not cover. We keep the two apart throughout, and judge the service by its **slow trips** (the 90th percentile) rather than its average.
 """)
-    st.markdown(f"""<table class='metrics'>
-<tr><th>Sheet</th><th>Field records (by hand)</th><th>When and where (field)</th><th>Modelled week</th></tr>
+    st.markdown(f"""
+<div class='cards3'>
+  <div class='card field'><div class='n'>{n_field:,}</div><div class='t'>Field records</div><div class='d'>Written down by us at the stops, mostly 27–30 September, plus queue counts on 27 October.</div></div>
+  <div class='card model'><div class='n'>{n_model:,}</div><div class='t'>Modelled week</div><div class='d'>Estimated records for 26 Oct – 1 Nov, filling every stop and hour we did not observe.</div></div>
+  <div class='card survey'><div class='n'>{len(SURVEY)}</div><div class='t'>Survey responses</div><div class='d'>Students on how they travel, how often vehicles are full, and what they want improved.</div></div>
+</div>""", unsafe_allow_html=True)
+    with st.expander("Read more: how we recorded the data and told the two kinds apart"):
+        md("""
+**Sheets.** B2 follows individual passengers from joining the queue to boarding; C logs every vehicle (ID, type, arrival and departure time, boarded, got off, left behind, free seats); B1 counts the queue and new arrivals. Nothing comes from GPS, an app or the operators.
+
+**Telling them apart.** The workbook's header says estimated rows “only fill times and stops the field work did not cover”, but the shading that marked them was lost on export. Every field row carries the recorder's name in **Entered by**; every estimated row has only a **Roster pair (reference)**; no row has both. The estimated week is also visibly regular (99% of its queue counts fall exactly on the 10-minute mark). The team confirmed the split.
+
+**Empty sheets.** Fleet availability (D) and the validation log were never filled in during fieldwork; we rebuilt both from the modelled week (Appendix).
+""")
+        st.markdown(f"""<table class='metrics'>
+<tr><th>Sheet</th><th>Field records</th><th>When and where (field)</th><th>Modelled week</th></tr>
 <tr><td>B1 · Queue counts</td><td>{len(Q_F)}</td><td>Tue 27 Oct, Bus Stop → Campus Gate, 11:12–13:24; one undated afternoon at SUB → Campus Gate</td><td>{len(Q_ALL):,}</td></tr>
 <tr><td>B2 · Timed passengers</td><td>{len(W_F)}</td><td>Sun 27 Sept, Bus Stop → Campus Gate, 12:30–15:36</td><td>{len(W_ALL):,}</td></tr>
 <tr><td>C · Vehicle arrivals</td><td>{len(V_F)}</td><td>27–30 Sept, six stop-directions, mostly afternoons</td><td>{len(V_ALL):,}</td></tr>
 </table>""", unsafe_allow_html=True)
-    md("Plus a **student survey** (52 online responses) and two sheets that were planned but left empty, which we rebuilt from the modelled week: **D · fleet availability** (section 7.8) and the **validation log** (section 7.10).")
-    st.markdown(
-        """<div class='pipeline'>
-        <div class='step'><b>1 · Observe</b><span>Pairs at the stops, timing and counting by hand</span></div><div class='arrow'>→</div>
-        <div class='step'><b>2 · Fill gaps</b><span>Model-estimated week covers the stops and hours we could not</span></div><div class='arrow'>→</div>
-        <div class='step'><b>3 · Separate</b><span>Field rows (named recorder) vs estimated rows (roster only)</span></div><div class='arrow'>→</div>
-        <div class='step'><b>4 · Analyse</b><span>Field results; model checked against field; percentiles, survival curves, simulation</span></div><div class='arrow'>→</div>
-        <div class='step'><b>5 · Publish</b><span>This report and dashboard</span></div>
-        </div>""",
-        unsafe_allow_html=True,
-    )
 
-    # ---- 3. Field -------------------------------------------------------
-    section("3. What the field records show", "field")
-    takeaway(f"At Bus Stop → Campus Gate on a Sunday afternoon, a typical tagged passenger waited about <b>{f_p50:.0f} minutes</b>, <b>{f_s10:.0%} were still waiting after 10 minutes</b>, and buses left almost full. Buses to and from Hall ran mostly empty.")
-    md(f"""
-{tag('field')} These are the records we took by hand. They cover few places and days, so they cannot describe the whole network, but **they are the only direct evidence of what campus transport is like**.
-
-**Timed passengers (Sun 27 Sept, Bus Stop → Campus Gate, CNG bus).** We tagged **{len(fsi)}** passengers between 12:30 and 15:36. **{int(fsi['event'].sum())}** boarded, after 1–12 minutes. **{f_never}** had still not boarded when the session ended; we count them as “waited at least this long” rather than dropping them. Counting them properly, the typical (median) wait was **{f_p50:.0f} minutes** and **{f_s10:.0%}** were still waiting after 10 minutes.
-""")
+    # ---- 2. Field -------------------------------------------------------
+    section("2. What we saw ourselves", "field")
+    takeaway(f"At Bus Stop → Campus Gate on a Sunday afternoon, the typical passenger waited about <b>{f_p50:.0f} minutes</b> and <b>{f_s10:.0%} were still waiting after 10</b>. Buses left nearly full; buses to Hall left mostly empty.")
     a, b = st.columns(2)
     with a:
         show(fig_field_waits(W_F))
-        explain("Each dot is one passenger: left to right is when they joined the queue, height is how long they waited. Teal dots boarded; red triangles had not boarded when we stopped, so their real wait was at least that long.",
-                "Waits stayed under about 12 minutes for people who got on, but the red triangles show a growing group who never did. Dropping them would make the service look much better than it was.")
+        explain("Each dot is one passenger: left to right is when they joined the queue, height is how long they waited. Blue dots boarded; red triangles had not boarded when we stopped, so their real wait was at least that long.",
+                f"{int(fsi['event'].sum())} passengers boarded within about 12 minutes, but {f_never} never did before we left. Ignoring them would make the service look far better than it was.")
     with b:
-        show(fig_survival({"Field: Bus Stop → Campus Gate, Sun 27 Sept": W_F}, "Share still waiting (field)", "Unfinished waits counted up to the end of the session", colors=[TEAL], xmax=30, field=True))
-        f_p90 = S.km_percentile(fkm, 90)
-        explain("Start at the top left: at 0 minutes everyone is still waiting. As minutes pass, people board and the line falls. Where it crosses 50% is the typical wait (P50); where it crosses 10% is the P90. Passengers who never boarded count as “still waiting” until the end of the session.",
-                f"The curve crosses 50% at about {f_p50:.0f} minutes and is still at {f_s10:.0%} at 10 minutes. It reaches 10% at about {f_p90:.0f} minutes, but by then only a handful of the {len(fsi)} passengers are still being followed, so the field P90 is <b>uncertain and probably longer</b>.")
-    md(f"""
-**Vehicle log (27–30 Sept, {len(V_F)} arrivals).** CNG buses leaving **Bus Stop → Campus Gate** were **{f_bscg['load'].mean():.0%} full** and left **{f_bscg['left_n'].sum():,.0f}** people behind while carrying **{f_bscg['boarded_n'].sum():,.0f}** (a person missing several buses is counted each time).
-Buses between **Campus Gate and Hall** left only about **{f_hall['load'].mean():.0%} full**.
-
-**Queue counts.** On Tue 27 Oct (11:12–13:24) the Bus Stop → Campus Gate queue swung between 0 and 26 people as buses came and went. In one afternoon session at **SUB → Campus Gate** (the date was not written on the sheet) it built from about 20 to 60 people between 14:30 and 16:30.
-""")
-    a, b = st.columns(2)
-    with a:
+        show(fig_survival({"Field: Bus Stop → Campus Gate, Sun 27 Sept": W_F}, "Share still waiting", "Field records · unfinished waits counted to the end of the session",
+                          colors=[TEAL], xmax=30, field=True))
+        explain("At 0 minutes everyone is waiting; as people board, the line falls. Where it crosses 50% is the typical wait (P50); where it crosses 10% is the P90. People who never boarded count as still waiting until the session ended.",
+                f"Half had boarded by about {f_p50:.0f} minutes; {f_s10:.0%} were still waiting at 10. The line reaches 10% around {f_p90:.0f} minutes, but only a few passengers are still being followed by then, so the true P90 is probably longer.")
+    d_sel = sorted(V_F["Date"].dropna().dt.date.unique())[0]
+    show(fig_vehicle_day(V_F, Q_F, d_sel, "BUS STOP -> CAMPUS GATE"))
+    explain(HOW["vday"], f"Nearly every bus filled up, and a red bar (people left behind) sits under almost every arrival: {f_bscg['left_n'].sum():,.0f} left behind against {f_bscg['boarded_n'].sum():,.0f} carried on this route in our log. The crowding is real.")
+    with st.expander("Read more: our queue counts and the other field days"):
         show(fig_field_queues(Q_F))
-        explain("Each line is one session of hand counts. Height is the number of people queuing at that moment.",
-                "The Bus Stop queue empties and refills with each bus. The SUB queue keeps growing through the afternoon: vehicles were not keeping up.")
-    with b:
+        explain("Each line is one session of hand counts; height is the number of people queuing.",
+                "The Bus Stop queue empties and refills with each bus. The SUB queue keeps growing through the afternoon, from about 20 to 60 people: vehicles were not keeping up.")
         dates = sorted(V_F["Date"].dropna().dt.date.unique())
-        d_sel = st.selectbox("Field day", dates, format_func=lambda d: f"{pd.Timestamp(d):%a %d %b}", key="field_day")
-        routes_f = sorted(V_F[V_F["Date"].dt.date.eq(d_sel)]["stop_direction"].dropna().unique())
-        r_sel = st.selectbox("Stop → direction", routes_f, key="field_route",
-                             index=routes_f.index("BUS STOP -> CAMPUS GATE") if "BUS STOP -> CAMPUS GATE" in routes_f else 0)
-        show(fig_vehicle_day(V_F, Q_F, d_sel, r_sel))
-        explain(HOW["vday"], "On Sun 27 Sept at Bus Stop → Campus Gate nearly every bus filled up and a red bar (people left behind) sits under almost every arrival: the crowding is real, not a modelling artefact.")
+        a, b = st.columns(2)
+        d2 = a.selectbox("Field day", dates, format_func=lambda d: f"{pd.Timestamp(d):%a %d %b}", key="field_day")
+        routes_f = sorted(V_F[V_F["Date"].dt.date.eq(d2)]["stop_direction"].dropna().unique())
+        r2 = b.selectbox("Stop → direction", routes_f, key="field_route")
+        show(fig_vehicle_day(V_F, Q_F, d2, r2))
 
-    # ---- 4. Model check -------------------------------------------------
-    section("4. Does the modelled week match the field?", "check")
-    takeaway("It points the same way (crowding at Bus Stop, spare seats to Hall) but is <b>more optimistic</b> than what we saw, so its waits are likely an under-estimate.")
-    md(f"""
-Before using the modelled week, we checked it against every place and time where we have field records. {tag('model')} vs {tag('field')}
-""")
-    st.dataframe(field_model_table(), hide_index=True, width="stretch")
+    # ---- 3. Check -------------------------------------------------------
+    section("3. Does the modelled week match what we saw?", "check")
+    takeaway("It points the same way (crowding at Bus Stop, spare seats to Hall) but is <b>gentler than reality</b>. Read its waits as a lower bound.")
     show(fig_field_vs_model_load(V_F, V_ALL))
-    explain("For each stop-direction with field records, teal is how full vehicles left in our hand counts and gold is the modelled week. n is the number of field departures behind each teal bar.",
-            "Both show Bus Stop → Campus Gate as the crowded route and the Hall routes as the quiet ones. The model makes Bus Stop a little less crowded and the Hall routes emptier than we saw. The biggest gap is waiting: on a Sunday afternoon the model has almost nobody waiting long at Bus Stop, while we had 40% still waiting after 10 minutes.")
-    md("""
-**What this means for the rest of the report.** The patterns in sections 7–8 come from the modelled week. Where the field records can check them, the **direction** holds but the **size** is too gentle.
-So read the modelled waits as a **lower bound**, treat the exact numbers as illustrations, and treat the statistical tests as describing the model rather than proving facts about campus.
-""")
+    explain("For each stop-direction with field records: blue is how full vehicles left in our hand counts, gold is the modelled week. n is the number of field departures.",
+            "Both agree on which routes are crowded and which are quiet. The model has Bus Stop a little less crowded than we saw, and on a Sunday afternoon it has almost nobody waiting long there, while we had 40% still waiting after 10 minutes.")
+    with st.expander("Read more: every check, side by side"):
+        st.dataframe(field_model_table(), hide_index=True, width="stretch")
+        md("Everything from section 4 onwards comes from the modelled week. Its statistical tests describe the model, not proven facts about campus.")
 
-    # ---- 5. Measures ----------------------------------------------------
-    section("5. What we measured, and why", "measures")
-    takeaway("We judge the service by its slow trips (P90, P95) and by the total waiting it causes (area under the curve), not by the average alone.")
-    st.markdown(
-        """<table class='metrics'>
-<tr><th>Measure</th><th>How we calculated it</th><th>Why we chose it</th></tr>
-<tr><td>Wait to board</td><td>Time boarded − time joined, from the two clock times.</td><td>What passengers experience at the kerb.</td></tr>
-<tr><td>Wait to depart</td><td>Time the boarded vehicle actually left − time joined.</td><td>A Keke passenger can board and then sit until it fills. This counts that time too, so buses and Keke are compared fairly.</td></tr>
-<tr><td>Percentile waits: P50, P75, P90, P95</td><td>The wait that 50/75/90/95% of passengers did not exceed, from a survival (Kaplan–Meier) curve so that unfinished waits are counted, not dropped.</td><td>P50 describes a normal trip; <b>P90 and P95 describe the bad trips</b> behind complaints and late arrivals. Percentiles are not dragged around by a few extreme values.</td></tr>
-<tr><td>Area under the waiting curve</td><td>Area under the “share still waiting” curve.</td><td>Equals the average wait; times passenger numbers, it is the <b>total time lost</b>. Shrinking it is the clearest single goal.</td></tr>
-<tr><td>Tail share</td><td>Share of all waiting minutes spent by the slowest 10% of passengers.</td><td>Shows how much fixing the tail would achieve.</td></tr>
-<tr><td>Queue size, arrivals, headway</td><td>People queuing at each count; new arrivals per hour; minutes between vehicles.</td><td>Demand, supply frequency and regularity.</td></tr>
-<tr><td>Load factor, left behind</td><td>Boarded ÷ seats; left behind ÷ (boarded + left behind) at each departure.</td><td>Whether vehicles leave full (short of capacity) or half-empty (capacity in the wrong place).</td></tr>
-<tr><td>Demand ÷ seats</td><td>Passengers arriving per hour ÷ seats departing per hour.</td><td>Above 1.0 the queue <i>must</i> grow: the clearest sign of where vehicles are needed.</td></tr>
-</table>""",
-        unsafe_allow_html=True,
-    )
-
-    # ---- 6. Decisions ---------------------------------------------------
-    section("6. Decisions and checks", "decisions")
-    takeaway("Every choice that could flatter the results was checked, and the results were kept honest even where that made them look worse.")
-    md(f"""
-- **Field and modelled data are never mixed.** Field results stand on their own (section 3); modelled-week results are labelled as such.
-- **Unfinished waits are counted, not dropped.** In the field they are censored at the end of that session; in the modelled week at 18:00. In the modelled week they are only {W_MAIN['censored'].mean():.1%} of passengers, but they **cluster on the worst evening routes** ({", ".join(f"{nice(r)} {n}" for r, n in cens_route.head(2).items())}), so the evening tail there is the least certain part of the results.
-- **The 18:00 column is left out of hourly charts.** Observation stopped at 18:00, so that “hour” is a single closing count per route-day and is too thin to interpret.
-- **Days, not passengers, are the unit for day-of-week comparisons.** Passengers on the same day share the same weather, events and fleet, so they are not independent. With 5 weekdays and 2 weekend days, we compare days directly.
-- **Waits are measured to boarding and to departure.** Keke passengers sit after boarding while the Keke fills, so we report both.
-- **No trimming of long waits.** Long waits are the subject, not noise. Capping the top 1% changes the modelled average by under 1%; deleting everything above P90 would hide the passengers this report is about.
-- **Impossible counts are flagged, not hidden.** {lb_bad} of {lb_all:,} modelled vehicle records ({lb_bad / lb_all:.1%}) report more people left behind than were in the queue, mostly at Bus Stop ↔ Campus Gate. They are marked in the vehicle charts.
-- **Cleaning.** Waits recalculated from clock times; 12-hour times converted to 24-hour; dates read day-first; rows with no destination (or the same stop as origin and destination) excluded; seat capacity 13 (bus) or 5 (Keke) where not written down.
-""")
-
-    # ---- 7. Findings (model) --------------------------------------------
-    section("7. Patterns in the modelled week", "findings")
-    takeaway("These patterns are consistent with the field records in direction. Read the numbers as illustrations and the waits as likely too low.")
-
-    section("7.1 The shape of waiting: a quick start and a long tail", "f-shape", 3)
-    md(f"""
-{tag('model')} Half of passengers board within **{P['P50']:.0f} minutes (P50)** and three-quarters within **{P['P75']:.0f} (P75)**, but **10% are still waiting after {P['P90']:.0f} (P90)** and 5% after {P['P95']:.0f} (P95). The shaded area, **{P['area']:.1f} minutes**, is the average wait.
-**Keke vs CNG bus.** Measured to boarding, a typical Keke rider waits {dep_med.loc['Keke', 'to_board']:.0f} minute against {dep_med.loc['CNG bus', 'to_board']:.0f} for a bus. But a Keke rider then sits while it fills: **measured to departure the typical wait is {dep_med.loc['Keke', 'to_depart']:.0f} minutes for Keke and {dep_med.loc['CNG bus', 'to_depart']:.0f} for buses**, and at P90 the two are close ({dep_p90.loc['Keke', 'to_depart']:.0f} vs {dep_p90.loc['CNG bus', 'to_depart']:.0f}). Keke is faster, but by less than the boarding times suggest.
-""")
-    show(fig_survival({"All passengers (modelled week)": W_MAIN}, "How long until passengers board?", "Share still waiting after each minute"))
-    explain(HOW["surv"], f"Steep at first (many board almost immediately), then a long flat tail that crosses the 10% line at {P['P90']:.0f} minutes. Most of the shaded area sits in that tail.")
+    # ---- 4. Where -------------------------------------------------------
+    section("4. Where and when the long waits are", "where")
+    takeaway(f"A few route-hours cause most of the long waits: three of them carry <b>{top3['pax_share'].sum():.0%} of passengers but {top3['share'].sum():.0%} of the slowest waits' minutes</b>.")
+    md(f"{tag('model')} The worst combination is **{nice(worst['stop_direction'])} in the {block_name[worst['Block']]}** (typical wait {worst['P50']:.0f}, P90 {worst['P90']:.0f} minutes). Mornings are worst overall (P90 {by_block.loc['AM', 'P90']:.0f}), midday easiest ({by_block.loc['MD', 'P90']:.0f}).")
+    demand = Q_ALL.groupby("stop_direction")["New arrivals (10 min)"].sum() / Q_ALL["Date"].nunique()
+    show(fig_route_map(by_route, demand))
+    explain("Each arrow is one stop and direction. Colour shows how long the slowest 10% of waits are; thickness shows passengers per day. Hover for the numbers. Positions are schematic, not a real map.",
+            "The thick red arrows cluster around Campus Gate: the Bus Stop ↔ Campus Gate corridor and the New Market routes. The thin blue arrows to Hall and Academics are reliable and lightly used.")
+    show(fig_ladder(by_route, "stop_direction", "Percentile waits by route", "Sorted by the 90th percentile", target=10))
+    explain(HOW["ladder"], f"{int((by_route['P90'] <= 10).sum())} of {len(by_route)} routes keep P90 at or under 10 minutes. New Market → Academics is far out on its own.")
     a, b = st.columns(2)
     with a:
         show(fig_bands(c_all))
-        explain(HOW["bands"], f"The slowest 10% of passengers spend {tail_pct:.0%} of all waiting minutes, and the slowest quarter {q75_share:.0%}. <b>Fixing the tail is where the gains are.</b>")
+        explain(HOW["bands"], f"The slowest 10% spend {tail_pct:.0%} of all waiting minutes; the slowest quarter {q75_share:.0%}. <b>Fixing the tail is where the gains are.</b>")
     with b:
-        show(fig_dep_waits(dep))
-        explain("For each vehicle type, the lighter bar is the typical wait to <i>board</i> and the darker bar the typical wait until the vehicle <i>actually leaves</i>. The gap is time spent sitting in a vehicle that is still filling up.",
-                f"Keke riders spend about {dep_med.loc['Keke', 'to_depart'] - dep_med.loc['Keke', 'to_board']:.0f} extra minutes seated before leaving; bus riders almost none. Counting it narrows Keke's advantage from {dep_med.loc['CNG bus', 'to_board'] - dep_med.loc['Keke', 'to_board']:.0f} minutes to {dep_med.loc['CNG bus', 'to_depart'] - dep_med.loc['Keke', 'to_depart']:.0f}.")
+        show(fig_tail_sources(c_all))
+        explain(HOW["tailsrc"], f"The top five route-and-time combinations produce {src.head(5)['share'].sum():.0%} of the slowest waits' minutes.")
+    with st.expander("Read more: the waiting curve, Keke vs bus, and the chance of boarding within 10 minutes"):
+        show(fig_survival({"All passengers (modelled week)": W_MAIN}, "How long until passengers board?", "Share still waiting after each minute"))
+        explain(HOW["surv"], f"Steep at first, then a long flat tail that crosses the 10% line at {P['P90']:.0f} minutes. The shaded area ({P['area']:.1f} min) is the average wait.")
+        a, b = st.columns(2)
+        with a:
+            show(fig_dep_waits(dep))
+            explain("Lighter bar: typical wait to board. Darker bar: typical wait until the vehicle actually leaves. The gap is time sitting in a vehicle that is still filling.",
+                    f"Keke riders sit about {dep_med.loc['Keke', 'to_depart'] - dep_med.loc['Keke', 'to_board']:.0f} extra minutes. Counting it narrows Keke's advantage from {dep_med.loc['CNG bus', 'to_board'] - dep_med.loc['Keke', 'to_board']:.0f} minutes to {dep_med.loc['CNG bus', 'to_depart'] - dep_med.loc['Keke', 'to_depart']:.0f}; at P90 the two are close ({dep_p90.loc['Keke', 'to_depart']:.0f} vs {dep_p90.loc['CNG bus', 'to_depart']:.0f}).")
+        with b:
+            show(fig_block_box(c_all))
+            explain(HOW["box"], f"Mornings are worst (P90 {by_block.loc['AM', 'P90']:.0f} min), midday easiest ({by_block.loc['MD', 'P90']:.0f}).")
+        thr = st.slider("Boarding threshold (minutes)", 5, 20, 10, step=5, key="report_thr")
+        show(fig_boarding(c_all, thr))
+        explain(HOW["boarding"], f"At most routes more than 85% board within 10 minutes; at {nice(route_ok.idxmin())} only {route_ok.min():.0%} do.")
 
-    section("7.2 Where the long waits happen", "f-where", 3)
+    # ---- 5. Why ---------------------------------------------------------
+    section("5. Why: seats in the wrong place, and bunching", "why")
+    takeaway("There are enough seats overall, but not where and when people travel, and vehicles arrive in bunches.")
+    lf_type = vm.groupby("Type")["load"].mean()
     md(f"""
-{tag('model')} The worst combination is **{nice(worst['stop_direction'])} in the {block_name[worst['Block']]}** (P50 {worst['P50']:.0f}, P90 {worst['P90']:.0f} minutes). Mornings are worst overall (P90 {by_block.loc['AM', 'P90']:.0f}), midday easiest ({by_block.loc['MD', 'P90']:.0f}).
-Three stop-and-time combinations carry **{top3['pax_share'].sum():.0%} of passengers but {top3['share'].sum():.0%} of the slowest waits' minutes**.
+{tag('model')} Vehicles leave **{vm['load'].mean():.0%} full** on average, so there is spare capacity, but in the wrong place. In **{len(near)} route-hours** passengers arriving use 95% or more of the seats on offer ({near_txt}), and in {len(over)} of them demand is above the seats. {tag('field')} Our own log agrees: Bus Stop buses {f_bscg['load'].mean():.0%} full, Hall buses about {f_hall['load'].mean():.0%}.
 """)
-    demand = Q_ALL.groupby("stop_direction")["New arrivals (10 min)"].sum() / Q_ALL["Date"].nunique()
-    show(fig_route_map(by_route, demand))
-    explain("Each arrow is one stop and direction of travel. Colour shows how bad the slowest 10% of waits are; thickness shows how many passengers use it each day. Hover over an arrow for its numbers. Positions are schematic, not a real map.",
-            "The thick red arrows cluster around Campus Gate: the Bus Stop ↔ Campus Gate corridor and the New Market routes. The thin teal arrows to Hall and Academics are the reliable, lightly used routes.")
-    show(fig_ladder(by_route, "stop_direction", "Percentile waits at each stop and direction", "Sorted by the 90th percentile", target=10))
-    worst4 = by_route.sort_values("P90", ascending=False).head(4)
-    explain(HOW["ladder"], f"{int((by_route['P90'] <= 10).sum())} of the {len(by_route)} routes keep P90 at or under 10 minutes (dashed line). {nice(worst4.iloc[0]['stop_direction'])} stands out with a P90 of {worst4.iloc[0]['P90']:.0f} minutes, then " + ", ".join(f"{nice(r)} ({p:.0f})" for r, p in zip(worst4['stop_direction'].iloc[1:], worst4['P90'].iloc[1:])) + ".")
-    show(fig_tail_sources(c_all))
-    explain(HOW["tailsrc"], f"The top three bars carry {top3['pax_share'].sum():.0%} of passengers but {top3['share'].sum():.0%} of the slowest waits' minutes; the top five reach {src.head(5)['share'].sum():.0%}. The tail is a handful of predictable places and times.")
+    show(fig_dc(dc))
+    explain(HOW["dc"], f"The redder cells sit exactly where the long queues are, at or just above 1.0 (up to {dc17['demand_to_capacity_ratio'].max():.2f}): in those hours any bunching or a missing bus tips the queue into growing.")
+    show(fig_load(load))
+    explain(HOW["load"], "Only Bus Stop → Campus Gate routinely leaves more than 80% full. Hall ↔ Campus Gate vehicles leave a quarter full or less: the natural place to borrow buses from.")
+    with st.expander("Read more: queues through the day, gaps between vehicles, people left behind"):
+        show(fig_queue_heat(Q_ALL))
+        explain(HOW["heat"], "Two hot zones: Bus Stop → Campus Gate from 15:00 and Campus Gate → Bus Stop in the morning, plus New Market → Academics in the morning.")
+        a, b = st.columns(2)
+        with a:
+            show(fig_headway(headway))
+            explain(HOW["headway"], "Busy corridors see a vehicle every 2–3 minutes; quieter routes such as SUB → Hall wait 6–10. Evening out the gaps is the cheapest fix (section 7).")
+        with b:
+            show(fig_left_behind(load))
+            explain(HOW["left"], "The same routes leave the most people behind.")
+        show(fig_queue_rhythm(Q_ALL))
+        explain(HOW["rhythm"], "Demand dips around midday, then roughly doubles by 17:00; queues follow.")
 
-    section("7.3 Will I get on within 10 minutes?", "f-10", 3)
-    worst_ok = route_ok.idxmin()
-    md(f"{tag('model')} At six of the eleven timed stop-directions more than 85% board within 10 minutes; at **{nice(worst_ok)}** only **{route_ok.loc[worst_ok]:.0%}** do. Use the slider to change the threshold.")
-    thr = st.slider("Threshold (minutes)", 5, 20, 10, step=5, key="report_thr")
-    show(fig_boarding(c_all, thr))
-    explain(HOW["boarding"], "Bars near 100% are reliable routes. The short red-amber bars at the bottom are where a student who leaves only 10 minutes is likely to be late.")
-
-    section("7.4 When the queues build", "f-queues", 3)
-    md(f"{tag('model')} The biggest average queue is **{peak['mean_queue']:.0f} people at {nice(peak['stop_direction'])} around {hh(peak['hour_slot'])}**. Hourly charts stop at 17:00 because 18:00 is a single closing count.")
-    show(fig_queue_rhythm(Q_ALL))
-    explain(HOW["rhythm"], "Demand has a small morning peak, dips around 11:00–12:00, then roughly doubles by 17:00. Queues follow: about 5 people at 08:00–10:00, under 2 at midday, rising again into the evening.")
-    show(fig_queue_heat(Q_ALL))
-    explain(HOW["heat"], "Two hot zones: Bus Stop → Campus Gate from 15:00 (the trip off campus) and Campus Gate → Bus Stop in the morning (the trip in), plus New Market → Academics in the morning: the same places that produce the waiting tail.")
-
-    section("7.5 Days, Fridays and weekends", "f-days", 3)
+    # ---- 6. Days --------------------------------------------------------
+    section("6. Days of the week and Fridays", "days")
+    takeaway("With one week of data, weekends clearly have less demand, but waits are not clearly different, and the Friday surge is a single day.")
     md(f"""
-{tag('model')} Comparing days needs care: there is **one week**, so **one Friday** and **two weekend days**. Treating thousands of passengers as independent makes any day look “significant”, but passengers on the same day share the same weather, events and fleet. So we compare **days**:
-
-- **Demand** is clearly lower at weekends: every weekend day had fewer arrivals than every weekday ({daily_arr[pd.to_datetime(daily_arr.index).day_of_week >= 5].max():,} vs at least {daily_arr[pd.to_datetime(daily_arr.index).day_of_week < 5].min():,}); a day-level permutation test gives p = {p_dem_days:.3f}, the smallest possible with 5 vs 2 days.
-- **Waits** are not clearly different: weekend P90s ({", ".join(f"{v:.0f}" for v in days[days['weekend']]['P90'])} min) sit inside the weekday range ({days[~days['weekend']]['P90'].min():.0f}–{days[~days['weekend']]['P90'].max():.0f}); day-level p = {p_wait_days:.2f}. Fewer passengers, but also fewer vehicles.
-- **Friday at New Market**: the 13:00–14:30 queue averaged about 42 people on the one Friday against under 1 person on every other day. One day cannot tell us whether that is a weekly pattern (for example Friday-prayer travel), an event, or rain. It is a lead to check, not a finding.
+{tag('model')} There is one week, so one Friday and two weekend days. Passengers on the same day share weather, events and fleet, so we compare **days**, not passengers. Every weekend day had fewer arrivals than every weekday (day-level p = {p_dem_days:.3f}, the smallest possible with 5 vs 2 days), but weekend waits sit inside the weekday range (p = {p_wait_days:.2f}). At New Market on the one Friday, the 13:00–14:30 queue averaged about 42 people against under 1 on other days. That is a lead to check on more Fridays, not a finding.
 """)
     a, b = st.columns(2)
     with a:
         show(fig_daily(days))
-        explain("Each bar is one day of the modelled week: the P90 wait that day. With only seven bars, a difference has to be large and consistent to mean anything.",
-                f"{days.loc[days['P90'].idxmax(), 'Day']} is the worst day (P90 {days['P90'].max():.0f} min) and {days.loc[days['P90'].idxmin(), 'Day']} the best, but the weekend days sit inside the weekday spread. One week is too short to call a day-of-week effect.")
+        explain("Each bar is one day: the P90 wait that day. With seven bars, a difference has to be large and consistent to mean anything.",
+                f"{days.loc[days['P90'].idxmax(), 'Day']} is the worst day (P90 {days['P90'].max():.0f} min), but the weekend days sit inside the weekday spread.")
     with b:
         show(fig_friday(Q_ALL))
-        explain(HOW["friday"], "One Friday stands far above the other weekdays at New Market. Because it is a single day, it needs repeat observation on other Fridays before anyone plans around it.")
+        explain(HOW["friday"], "One Friday stands far above the other weekdays at New Market; it needs repeat observation.")
 
-    section("7.6 Are there enough seats?", "f-seats", 3)
-    lf_type = vm.groupby("Type")["load"].mean()
-    md(f"""
-{tag('model')} On average vehicles leave **{vm['load'].mean():.0%} full** (bus {lf_type.get('CNG bus', np.nan):.0%}, Keke {lf_type.get('Keke', np.nan):.0%}), so there is spare capacity, but in the **wrong place at the wrong time**.
-Demand reaches or slightly exceeds the seats on offer in **{len(over)} route-hours**, all on **Bus Stop → Campus Gate (15:00–18:00)** and **New Market → Academics (08:00–10:00)**, with ratios of 1.0–{over['demand_to_capacity_ratio'].max():.1f}. {tag('field')} Our own vehicle log agrees: Bus Stop buses left {f_bscg['load'].mean():.0%} full, Hall buses about {f_hall['load'].mean():.0%}.
-""")
+    # ---- 7. Cut ---------------------------------------------------------
+    section("7. How to cut the 90th percentile", "cut")
+    takeaway(f"Spacing vehicles evenly and moving 2 buses an hour from the Hall routes to the peaks: <b>P90 {base['P90']:.0f} → {best['P90']:.0f} minutes, total waiting {best['area_change']:.0%}</b>, no new vehicles.")
+    md(f"{tag('model')} We replayed the modelled week in a queue simulation (passengers arrive at the counted rates, vehicles at the logged times with their free seats) and tried changes. The simulation matches the modelled week closely, and the field records support the direction (full buses at Bus Stop, near-empty buses to Hall); the size of the gain needs a real field week to confirm.")
     a, b = st.columns(2)
     with a:
-        show(fig_load(load))
-        explain(HOW["load"], "Bus Stop → Campus Gate is the only route where vehicles routinely leave more than 80% full. Hall ↔ Campus Gate vehicles leave a quarter full or less: the natural place to borrow buses from.")
-    with b:
-        show(fig_left_behind(load))
-        explain(HOW["left"], "The same routes leave the most people behind: Bus Stop → Campus Gate, New Market → Academics/Campus Gate and Campus Gate → Bus Stop.")
-    show(fig_dc(dc))
-    explain(HOW["dc"], f"Cells above 1.0 sit exactly where the long queues are, but only just above (up to {over['demand_to_capacity_ratio'].max():.2f}): in those hours demand roughly equals the seats on offer, so any bunching or a single missing bus tips the queue into growing.")
-
-    section("7.7 Vehicles arrive bunched together", "f-bunch", 3)
-    md(f"{tag('model')} {tag('field')} Even where there are enough seats over the hour, vehicles do not arrive evenly: several within a minute or two of each other, then none for a while. In our field log at Bus Stop → Campus Gate the typical gap was 2 minutes but gaps of 10+ minutes also occur. Passengers arriving just after a bunch face the whole gap.")
-    show(fig_headway(headway))
-    explain(HOW["headway"], "Busy corridors see a vehicle every 2–3 minutes on average, so their problem is capacity. Quieter routes such as SUB → Hall or Campus Gate → New Market wait 6–10 minutes between vehicles. Section 8 shows how much evening out the gaps would save.")
-
-    section("7.8 How many vehicles were running?", "f-fleet", 3)
-    md(f"{tag('model')} The fleet sheet (D) was empty, so we rebuilt it from vehicle IDs seen at the stops in the modelled week: **{fd['fleet_cng'].iat[0]} buses and {fd['fleet_keke'].iat[0]} Keke**, thinning to {int(fd['CNG bus'].iloc[-1])} buses and {int(fd['Keke'].iloc[-1])} Keke on Sunday. Friday had the fewest buses of any weekday ({int(fd['CNG bus'].iloc[4])}) and the worst waits; with one Friday we cannot tell whether that is cause or coincidence.")
-    show(fig_fleet_daily(fd))
-    explain(HOW["fleet"], "The bars shrink towards the weekend and the red line dips lowest on Friday, the weekday with the fewest buses. At the weekend demand halves too, so service holds up.")
-    with st.expander("Which vehicles worked which days (rebuilt sheet D)"):
-        show(fig_fleet_grid(FLEET))
-        explain(HOW["grid"], "Most vehicles worked most weekdays; the blanks pile up at the weekend. This counts vehicles <i>seen</i>, not vehicles officially in service.")
-
-    section("7.9 What students told us", "f-survey", 3)
-    md(f"""
-**{len(SURVEY)}** students answered an online survey. **{SURVEY['failed_boarding'].isin(['Often', 'Always']).mean():.0%}** say the first vehicle is *often* or *always* too full to board, the top requests are **shorter waits and more vehicles**, and **{SURVEY['tracking_app'].eq('Yes').mean():.0%}** would use a tracking app.
-The survey asked students for their *usual* wait as a range (e.g. “11 to 15 minutes”). That is **not comparable** with our pooled measurements: the respondents chose themselves, they recall their own regular trips (often the crowded peak routes), and the measured median is pulled down by many zero-minute Keke boardings.
-So the survey tells us what students **care about and experience**, not a competing measurement of waiting time.
-""")
-    a, b = st.columns(2)
-    with a:
-        show(fig_survey_bar(SURVEY, "failed_boarding", "“How often is the first vehicle too full to board?”", SURVEY_ORDERS["failed_boarding"]))
-        explain(HOW["survey"], "Most students say <i>often</i> or <i>sometimes</i>; almost none say never. That matches our field log of full buses at Bus Stop.")
-    with b:
-        show(fig_multi(SURVEY, "desired_improvements", "“What would you most like to see improved?”"))
-        explain("Each bar counts students who ticked that improvement; the label is the share of all respondents.",
-                "Shorter waits and more vehicles lead: demands about capacity and reliability, not comfort.")
-    with st.expander("Reported vs measured waits by boarding stop (not like for like)"):
-        show(fig_perceived(COMPARE))
-        explain(HOW["perceived"], "Reported waits are higher everywhere, but the comparison is descriptive only: 2–19 self-selected students per stop recalling their usual trips, against all modelled passengers at that stop.")
-
-    section("7.10 Can we predict how long someone will wait?", "f-predict", 3)
-    md(f"{tag('model')} Predicting each passenger's wait from the other six days of the modelled week (same stop, direction, time block and vehicle type) is off by **{VAL['abs_error'].mean():.1f} minutes** on average, against **{VAL['baseline_abs_error'].mean():.1f}** for a naive guess. Because the modelled week is itself generated from regular patterns, this mainly shows the method works; a real test needs predictions written down *before* a field session.")
-    a, b = st.columns(2)
-    with a:
-        show(fig_validation_days(VAL))
-        explain(HOW["valdays"], "Teal bars are lower than grey on every day: the method beats the naive guess.")
-    with b:
-        show(fig_calibration(VAL))
-        explain(HOW["calib"], "Above about 70% the points sit close to the dotted line; below that the model's percentages are rough.")
-
-    section("7.11 How big are the differences?", "f-stats", 3)
-    md("These tests were run on the modelled week with passengers as the unit, so their p-values are **not evidence about campus** (see 7.5). We keep the **effect sizes** as a description of how strongly the modelled week differs between groups (0.1 small, 0.3 medium, 0.5 large).")
-    if not TESTS.empty:
-        show(fig_effects(TESTS))
-        explain(HOW["effects"].replace("Teal = statistically significant (p < 0.05); grey = not.", "Treat these as descriptions of the modelled week, not proof."),
-                "The largest effects are the single-Friday New Market surge (0.83) and the morning penalty at New Market and Hall (about 0.5). The Keke vs bus gap is small to medium (0.26), and smaller still once waits are measured to departure.")
-    if not SPEARMAN.empty:
-        with st.expander("Which measures move together? (Spearman correlations)"):
-            show(fig_spearman(SPEARMAN))
-            explain(HOW["spearman"], "Queue size is strongly linked with waiting time and with how full vehicles leave.")
-
-    # ---- 8. Cut P90 -----------------------------------------------------
-    section("8. How to cut the 90th percentile and the area under the curve", "cut")
-    takeaway(f"In a simulation of the modelled week, <b>spacing vehicles evenly and moving 2 buses an hour from the Hall routes to the peaks</b> cuts P90 from {base['P90']:.0f} to {best['P90']:.0f} minutes and halves total waiting, with no new vehicles. The field records support the direction; the size needs a real test.")
-    md(f"""
-{tag('model')} We built a **queue simulation** that replays the modelled week: passengers arrive at the counted rates (B1) and vehicles arrive at the logged times with their free seats (C), loading first come, first served, plus anyone who walks up while the vehicle is still at the stop.
-
-**How far to trust it.** It reproduces the modelled week's P90 waits within about half a minute across 33 stop-direction × time-block cells, but that check is **partly circular**: the modelled week was itself generated from regular patterns, so matching it shows the simulation is internally consistent, not that it predicts campus. There is not yet enough field data (a full session of arrivals, vehicles and waits at the same stop) to test it against reality.
-What makes the direction credible is the field evidence: **full buses and long waits at Bus Stop, near-empty buses on the Hall routes** (sections 3–4).
-""")
-    obs_rb = pct_table(("stop_direction", "Block"))
-    sim_rb = S.percentile_table(sims["As observed"], ["stop_direction", "Block"])
-    a, b = st.columns(2)
-    with a:
-        show(fig_sim_check(obs_rb, sim_rb))
-        explain(HOW["simcheck"].replace("the P90 wait we actually timed", "the P90 wait in the modelled week"), "The dots hug the dotted line, so the simulation is consistent with the modelled week, the base we test changes on.")
-    with b:
         show(fig_scenarios(scen))
-        explain(HOW["scen"], f"Each option helps; combining them helps most: P90 {base['P90']:.0f} → {best['P90']:.0f} minutes, average {base['area']:.1f} → {best['area']:.1f}.")
-    md(f"""
-**Options tested** (simulated over the modelled week):
-1. **Even spacing (same vehicles).** P90 {base['P90']:.0f} → **{scen.iloc[1]['P90']:.0f}** min; area **{scen.iloc[1]['area_change']:.0%}**.
-2. **Move 2 buses an hour** from Hall ↔ Campus Gate to the 9 peak route-hours (New Market → Academics and Campus Gate → Bus Stop 08:00–11:00; Bus Stop → Campus Gate 15:00–18:00). Peak P90 {base['peak_P90']:.0f} → **{scen.iloc[2]['peak_P90']:.0f}**; on its own, donor-route P90 rises from {base['donor_P90']:.0f} to {scen.iloc[2]['donor_P90']:.0f}.
-3. **Add 2 new buses an hour** in the same cells: P90 → **{scen.iloc[3]['P90']:.0f}**, but it needs extra vehicles and drivers.
-4. **Move 2 buses an hour + even spacing.** P90 **{base['P90']:.0f} → {best['P90']:.0f}**, area **{best['area_change']:.0%}**, about **{best['hours_saved_per_day']:.0f} passenger-hours a day** in the modelled week; donor routes end up no worse (P90 {base['donor_P90']:.0f} → {best['donor_P90']:.0f}).
-""")
-    show(fig_survival({"As modelled": sims["As observed"], "Move 2 buses/hr + even spacing": sims[scen.iloc[4]["scenario"]]},
-                      "The waiting curve, before and after", "Simulated over the modelled week", colors=[RED, TEAL]))
-    explain(HOW["surv"], "The teal curve falls faster and reaches the 10% line much sooner; its area is about half as large. That smaller area is the waiting time saved.")
-    st.markdown("**Try it yourself.**")
+        explain(HOW["scen"], f"Each option helps; combining them helps most. Even spacing alone cuts P90 to {scen.iloc[1]['P90']:.0f}; adding the moved buses brings it to {best['P90']:.0f}.")
+    with b:
+        show(fig_survival({"As modelled": sims["As observed"], "Move 2 buses/hr + even spacing": sims[scen.iloc[4]["scenario"]]},
+                          "The waiting curve, before and after", "Simulated over the modelled week", colors=[RED, TEAL]))
+        explain(HOW["surv"], "The blue curve falls faster and reaches the 10% line much sooner. Its area is about half as large: that is the waiting time saved.")
+    st.markdown("**Try it yourself**")
     a, b, c = st.columns([1.2, 1, 1])
-    extra = a.slider("Extra buses per hour in each peak route-hour", 0, 4, 2, key="sim_extra")
+    extra = a.slider("Extra buses per hour at each peak", 0, 4, 2, key="sim_extra")
     mode = b.radio("Where do they come from?", ["Moved from Hall ↔ Campus Gate", "Newly added"], key="sim_mode")
     spacing = c.toggle("Space vehicles evenly", value=True, key="sim_spacing")
-    if extra == 2 and mode.startswith("Moved") and spacing:
-        custom = sims[scen.iloc[4]["scenario"]]
-    else:
-        custom = custom_scenario(extra, "move" if mode.startswith("Moved") else "add", spacing)
+    custom = sims[scen.iloc[4]["scenario"]] if (extra == 2 and mode.startswith("Moved") and spacing) else \
+        custom_scenario(extra, "move" if mode.startswith("Moved") else "add", spacing)
     cp = S.percentile_table(custom).iloc[0]
     kk = st.columns(4)
     kk[0].metric("P50", f"{cp['P50']:.0f} min", f"{cp['P50'] - base['P50']:+.0f}", delta_color="inverse")
     kk[1].metric("P90", f"{cp['P90']:.0f} min", f"{cp['P90'] - base['P90']:+.0f}", delta_color="inverse")
     kk[2].metric("P95", f"{cp['P95']:.0f} min", f"{cp['P95'] - base['P95']:+.0f}", delta_color="inverse")
     kk[3].metric("Average (area)", f"{cp['area']:.1f} min", f"{cp['area'] / base['area'] - 1:+.0%}", delta_color="inverse")
-    show(fig_survival({"As modelled": sims["As observed"], "Your option": custom}, "Your option vs the modelled week", colors=[RED, TEAL]))
+    with st.expander("Read more: how the simulation works, how far to trust it, and every option"):
+        obs_rb = pct_table(("stop_direction", "Block"))
+        sim_rb = S.percentile_table(sims["As observed"], ["stop_direction", "Block"])
+        show(fig_sim_check(obs_rb, sim_rb))
+        explain(HOW["simcheck"].replace("the P90 wait we actually timed", "the P90 wait in the modelled week"),
+                "The dots hug the line, so the simulation reproduces the modelled week. That check is partly circular (the week is itself modelled), so it shows consistency, not proof.")
+        md(f"""
+1. **Even spacing (same vehicles):** P90 {base['P90']:.0f} → **{scen.iloc[1]['P90']:.0f}**; area **{scen.iloc[1]['area_change']:.0%}**.
+2. **Move 2 buses an hour** from Hall ↔ Campus Gate to the 9 peak route-hours (New Market → Academics and Campus Gate → Bus Stop 08:00–11:00; Bus Stop → Campus Gate 15:00–18:00): peak P90 {base['peak_P90']:.0f} → **{scen.iloc[2]['peak_P90']:.0f}**; on its own, donor P90 rises {base['donor_P90']:.0f} → {scen.iloc[2]['donor_P90']:.0f}.
+3. **Add 2 new buses an hour** in the same cells: P90 → **{scen.iloc[3]['P90']:.0f}**, but needs extra vehicles and drivers.
+4. **Move + even spacing:** P90 **{base['P90']:.0f} → {best['P90']:.0f}**, area **{best['area_change']:.0%}**, about {best['hours_saved_per_day']:.0f} passenger-hours a day; donor routes end up no worse ({base['donor_P90']:.0f} → {best['donor_P90']:.0f}).
 
-    # ---- 9. Limitations ------------------------------------------------
-    section("9. Limitations: what this study can’t tell you", "limits")
-    takeaway("The field records are real but few; the modelled week is complete but estimated, and gentler than reality where we could check it.")
-    md(f"""
-- **Most records are model-estimated.** {n_model:,} of {n_field + n_model:,} records come from the estimated week. Its patterns agree with the field records in direction but its waits are too optimistic where we can check, and every p-value, correlation and confidence interval computed on it describes the model, not campus.
-- **The field records are thin.** One afternoon of timed passengers at one stop (a Sunday), {len(V_F)} vehicle arrivals over four days, and two queue sessions (one undated). They show what happened there and then, not across the network.
-- **One week, one Friday.** Day-of-week patterns rest on 7 days; the Friday surge rests on one.
-- **Censoring at the end of sessions.** Unfinished waits are only known to be *at least* so long. They cluster on the worst evening routes, so those tails are the least certain; in the field the P90 was longer than our session.
-- **Data-entry problems.** {lb_bad} modelled vehicle records report more people left behind than were queuing; left-behind counts also count a person again for each vehicle they miss.
-- **Simulation.** Checked only against the modelled week (partly circular); assumes first-come-first-served boarding, unchanged passenger behaviour, and buses that can be dispatched evenly and moved between routes within the hour. Treat its savings as an upper bound for good scheduling, to be tested in the field.
-- **Survey.** 52 self-selected students; not comparable with measured waits.
-- **Rebuilt sheets.** Fleet availability counts vehicles seen at our stops in the modelled week; the prediction check reuses the same week.
+Assumes first-come-first-served boarding, unchanged passenger behaviour, and buses that can be dispatched evenly and moved within the hour, so treat the savings as an upper bound for good scheduling.
 """)
+
+    # ---- 8. Students ----------------------------------------------------
+    section("8. What students told us", "students")
+    takeaway(f"{SURVEY['failed_boarding'].isin(['Often', 'Always']).mean():.0%} say the first vehicle is often or always too full, and {SURVEY['tracking_app'].eq('Yes').mean():.0%} would use a tracking app.")
+    a, b = st.columns(2)
+    with a:
+        show(fig_survey_bar(SURVEY, "failed_boarding", "“How often is the first vehicle too full to board?”", SURVEY_ORDERS["failed_boarding"]))
+        explain(HOW["survey"], "Most students say often or sometimes; almost none say never. That matches our field log of full buses at Bus Stop.")
+    with b:
+        show(fig_multi(SURVEY, "desired_improvements", "“What would you most like to see improved?”"))
+        explain("Each bar counts students who ticked that improvement; the label is the share of respondents.", "Shorter waits and more vehicles lead: demands about capacity and reliability.")
+    with st.expander("Read more: reported vs measured waits (not like for like)"):
+        md("The survey asked for a *usual* wait as a range. 52 self-selected students recalling their own (often peak) trips are not comparable with all passengers at a stop, many of whom board a waiting Keke at once. The survey shows what students experience and care about, not a competing measurement.")
+        show(fig_perceived(COMPARE))
+        explain(HOW["perceived"], "Reported waits are higher everywhere; per-stop samples are 2–19 students, so this is descriptive only.")
+
+    # ---- 9. Limits ------------------------------------------------------
+    section("9. What to keep in mind", "limits")
+    st.markdown(f"""<div class='limits article'><ul>
+<li><b>Most records are model-estimated</b> ({n_model:,} of {n_field + n_model:,}). They agree with our field records in direction but are gentler where we can check; statistics on them describe the model, not campus.</li>
+<li><b>The field records are thin:</b> one afternoon of timed passengers at one stop, {len(V_F)} vehicle arrivals over four days, two queue sessions.</li>
+<li><b>One week, one Friday:</b> day-of-week patterns rest on 7 days, the Friday surge on one.</li>
+<li><b>The simulation</b> is checked only against the modelled week; its savings are an upper bound to test in the field.</li>
+</ul></div>""", unsafe_allow_html=True)
 
     # ---- 10. Conclusion -------------------------------------------------
     section("10. Conclusion and recommendations", "conclusion")
-    takeaway("Crowding is concentrated on the Bus Stop ↔ Campus Gate corridor while buses to Hall run nearly empty, and both our hand counts and the modelled week say so. Move and space the vehicles, and measure properly to confirm the gain.")
     md(f"""
-What we saw by hand is consistent and clear: on the **Bus Stop → Campus Gate** run, buses leave essentially full, more people are left behind than carried, and many passengers wait over 10 minutes; buses between **Campus Gate and Hall** leave mostly empty.
-The modelled week fills in the rest of the network and shows the same shape: most trips are quick, but a **long tail of slow trips**, concentrated in a few route-hours where demand meets or exceeds the seats on offer and made worse by **bunching**, accounts for a third of all waiting.
+Our hand counts and the modelled week tell the same story. Most trips are quick, but a **long tail of slow trips**, concentrated on the **Bus Stop ↔ Campus Gate corridor** and **New Market → Academics in the morning**, accounts for a third of all waiting. In those hours demand meets or exceeds the seats on offer and vehicles arrive in bunches, while buses to Hall run nearly empty.
 
-**Recommendations**
-1. **Run one real field week before deciding anything big.** Use the same sheets but cover the 9 peak route-hours (Bus Stop ↔ Campus Gate, New Market → Academics) on every weekday, keep the “Entered by” column on every row, note the session end time for anyone still waiting, and write predicted waits down *before* each session.
-2. **Set a P90 target, not an average target**, e.g. *no stop-direction above a 10-minute P90*, and track P90 and P95 each term.
-3. **Space vehicles evenly** at the busiest stops (leave at fixed intervals instead of in convoy). It costs nothing and, in the simulation, cuts P90 by about {base['P90'] - scen.iloc[1]['P90']:.0f} minutes.
-4. **Move buses to where the tail is**: about 2 an hour from Hall ↔ Campus Gate to Campus Gate → Bus Stop and New Market → Academics in the morning, and to Bus Stop → Campus Gate from 15:00 to 18:00. New Market → Academics currently has no CNG bus service at all.
+1. **Run one real field week first.** Cover the 9 peak route-hours on every weekday, keep the *Entered by* column on every row, note the session end time for anyone still waiting, and write predicted waits down *before* each session.
+2. **Set a P90 target, not an average target**, e.g. *no stop-direction above 10 minutes at P90*, and track P90 and P95 every term.
+3. **Space vehicles evenly** at the busiest stops: leave at fixed intervals, not in convoy. It costs nothing.
+4. **Move buses to where the tail is:** about 2 an hour from Hall ↔ Campus Gate to Campus Gate → Bus Stop and New Market → Academics in the morning, and to Bus Stop → Campus Gate from 15:00 to 18:00.
 5. **Check Fridays at New Market** on several Fridays before planning around them.
-6. **Publish expected waits.** {SURVEY['tracking_app'].eq('Yes').mean():.0%} of surveyed students would use a tracking app; even a simple “expected wait” sign reduces the uncertainty that makes waiting feel worse.
+6. **Publish expected waits:** {SURVEY['tracking_app'].eq('Yes').mean():.0%} of surveyed students would use a tracking app.
 """)
 
     # ---- 11. Team -------------------------------------------------------
     section("11. Who did what", "team")
-    md("This was a team effort from planning to publication. **Every member of the team took part in the field work and data collection**, standing at the stops in pairs; the cards below also show what each person led on.")
+    md("**Every member of the team took part in the field work and data collection**, standing at the stops in pairs. The cards also show what each person led on.")
     team_cards()
-    md("The <b>Dashboard</b> page lets you filter every chart and switch between field and modelled data. The <b>Data</b> page lets you download the records.")
+
+    # ---- Appendix -------------------------------------------------------
+    section("Appendix: method and detail", "appendix")
+    with st.expander("A · What we measured, and why"):
+        st.markdown(
+            """<table class='metrics'>
+<tr><th>Measure</th><th>How we calculated it</th><th>Why we chose it</th></tr>
+<tr><td>Wait to board</td><td>Time boarded − time joined, from the two clock times.</td><td>What passengers experience at the kerb.</td></tr>
+<tr><td>Wait to depart</td><td>Time the boarded vehicle left − time joined.</td><td>Counts time sitting in a Keke that is still filling, so buses and Keke compare fairly.</td></tr>
+<tr><td>P50, P75, P90, P95</td><td>From a survival (Kaplan–Meier) curve, so unfinished waits are counted, not dropped.</td><td>P50 is a normal trip; P90 and P95 are the bad trips behind complaints and late arrivals.</td></tr>
+<tr><td>Area under the curve</td><td>Area under the “share still waiting” curve.</td><td>Equals the average wait; times passengers, the total time lost.</td></tr>
+<tr><td>Tail share</td><td>Share of waiting minutes spent by the slowest 10%.</td><td>How much fixing the tail would achieve.</td></tr>
+<tr><td>Load, left behind, headway</td><td>Boarded ÷ seats; left behind ÷ (boarded + left behind); minutes between vehicles.</td><td>Whether capacity is short, misplaced, or irregular.</td></tr>
+<tr><td>Demand ÷ seats</td><td>Arrivals per hour ÷ seats departing per hour.</td><td>Above 1.0 the queue must grow.</td></tr>
+</table>""", unsafe_allow_html=True)
+    with st.expander("B · Decisions and checks"):
+        md(f"""
+- **Field and modelled data are never mixed.**
+- **Unfinished waits are counted:** censored at the end of the session (field) or 18:00 (model). In the model they are {W_MAIN['censored'].mean():.1%} of passengers but cluster on the worst evening routes ({", ".join(f"{nice(r)} {n}" for r, n in cens_route.head(2).items())}).
+- **The 18:00 column is left out of hourly charts:** it is a single closing count per route-day.
+- **Days are the unit** for day-of-week comparisons.
+- **No trimming of long waits:** capping the top 1% changes the modelled average by under 1%.
+- **Impossible counts are flagged:** {lb_bad} of {lb_all:,} modelled vehicle records report more people left behind than were queuing; they are marked in the charts.
+- **Cleaning:** waits recalculated from clock times; 24-hour times; dates read day-first; rows with no destination excluded; seats 13 (bus) / 5 (Keke) where missing.
+""")
+    with st.expander("C · Full limitations"):
+        md(f"""
+- Estimated rows: {n_model:,} records; every p-value, correlation and confidence interval on them describes the model.
+- Field records: one afternoon of timed passengers (Sunday), {len(V_F)} vehicle arrivals, two queue sessions (one undated); the SUB → Campus Gate route appears only in field records.
+- Censoring at session end: unfinished waits are “at least” values; the field P90 was longer than our session.
+- {lb_bad} modelled vehicle records with impossible left-behind counts; left-behind counts also count a person again for each vehicle they miss.
+- Simulation: checked only against the modelled week; FCFS boarding; unchanged behaviour; ideal dispatching.
+- Survey: 52 self-selected students; not comparable with measured waits.
+- Rebuilt sheets (fleet, validation) come from the modelled week.
+""")
+    with st.expander("D · Vehicles on the road (rebuilt fleet sheet)"):
+        show(fig_fleet_daily(fd))
+        explain(HOW["fleet"], f"{fd['fleet_cng'].iat[0]} buses and {fd['fleet_keke'].iat[0]} Keke seen over the week, thinning to {int(fd['CNG bus'].iloc[-1])} buses and {int(fd['Keke'].iloc[-1])} Keke on Sunday. Friday had the fewest buses of any weekday and the worst waits; one Friday cannot tell cause from coincidence.")
+        show(fig_fleet_grid(FLEET))
+        explain(HOW["grid"], "Most vehicles worked most weekdays; blanks pile up at the weekend.")
+    with st.expander("E · Predicting waits"):
+        md(f"Predicting each passenger's wait from the other six modelled days is off by **{VAL['abs_error'].mean():.1f} minutes** on average, against **{VAL['baseline_abs_error'].mean():.1f}** for a naive guess. Because the week is modelled, this mainly shows the method works; a real test needs predictions written down before a field session.")
+        a, b = st.columns(2)
+        with a:
+            show(fig_validation_days(VAL))
+            explain(HOW["valdays"], "The model beats the naive guess on every day.")
+        with b:
+            show(fig_calibration(VAL))
+            explain(HOW["calib"], "Above about 70% the predicted chances are close to reality; below that they are rough.")
+    with st.expander("F · Effect sizes and correlations"):
+        md("Run on the modelled week with passengers as the unit, so p-values are not evidence about campus. Effect sizes describe how strongly the modelled week differs between groups (0.1 small, 0.3 medium, 0.5 large).")
+        if not TESTS.empty:
+            show(fig_effects(TESTS))
+            explain(HOW["effects"].replace("Blue = statistically significant (p < 0.05); grey = not.", ""), "Largest: the single-Friday New Market surge and the morning penalty at New Market and Hall.")
+        if not SPEARMAN.empty:
+            show(fig_spearman(SPEARMAN))
+            explain(HOW["spearman"], "Queue size moves with waiting time and with how full vehicles leave.")
 
 
 def team_cards() -> None:
@@ -2383,7 +2389,7 @@ def page_dashboard() -> None:
         if q.empty:
             st.info("No queue counts in this selection.")
         else:
-            show(fig_queue_rhythm(q)); explain(HOW["rhythm"], "If the teal line climbs while the bars stay flat, vehicles are falling behind demand.")
+            show(fig_queue_rhythm(q)); explain(HOW["rhythm"], "If the blue line climbs while the bars stay flat, vehicles are falling behind demand.")
             show(fig_queue_heat(q)); explain(HOW["heat"], "Dark-red squares are the stop-hours to avoid, or where more vehicles are needed.")
             per = queue_by_route_hour(q)
             top = per.groupby("stop_direction")["mean_queue"].max().sort_values(ascending=False).index.tolist()
@@ -2394,7 +2400,7 @@ def page_dashboard() -> None:
                 show(fig_weekday_weekend(q)); explain(HOW["wkend"], "The gap between the lines is how much quieter weekends are.")
             with b:
                 byday = q.groupby("Day")["Queue size"].mean().reindex(DAY_ORDER).dropna().reset_index()
-                fig = px.bar(byday, x="Day", y="Queue size", color="Queue size", color_continuous_scale="YlOrRd",
+                fig = px.bar(byday, x="Day", y="Queue size", color="Queue size", color_continuous_scale=SEQ,
                              labels={"Queue size": "average queue", "Day": ""})
                 fig.update_layout(coloraxis_showscale=False)
                 show(style(fig, 400, "Average queue by day of week"))
@@ -2437,7 +2443,7 @@ def page_dashboard() -> None:
             delta = f"{cp[key] - base[key]:+.0f}" if key != "area" else f"{cp[key] / base[key] - 1:+.0%}"
             col.metric(key if key != "area" else "Area (avg wait)", f"{cp[key]:.0f} min" if key != "area" else f"{cp[key]:.1f} min", delta, delta_color="inverse")
         show(fig_survival({"As observed": sims["As observed"], "Your option": custom}, "Your option vs today", colors=[RED, TEAL]))
-        explain(HOW["surv"], "The further left the teal curve crosses the 10% line, the lower the P90.")
+        explain(HOW["surv"], "The further left the blue curve crosses the 10% line, the lower the P90.")
         show(fig_scenarios(scen)); explain(HOW["scen"], "The standard options from the report, side by side.")
     with tabs[4]:
         a, b = st.columns([1, 1])
@@ -2448,7 +2454,7 @@ def page_dashboard() -> None:
         with b:
             show(fig_multi(SURVEY, "preference_reasons", "Why students prefer their transport type"))
             explain("Each bar counts students who ticked that reason.", "Comfort comes first, followed by going directly to the destination, shorter waits and faster journeys.")
-        show(fig_perceived(COMPARE)); explain(HOW["perceived"], "Amber taller than teal = students feel waits are longer than we measured.")
+        show(fig_perceived(COMPARE)); explain(HOW["perceived"], "Gold taller than blue = students feel waits are longer than we measured.")
         comments = SURVEY["other_comments"].dropna()
         comments = comments[comments.str.len() > 3]
         with st.expander(f"Read the students' own comments ({len(comments)})"):
