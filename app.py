@@ -1876,7 +1876,7 @@ def page_report() -> None:
     dep_p90 = dep.groupby("Type used")[["to_board", "to_depart"]].quantile(.9)
     days = daily_table()
     p_wait_days = permutation_p(days["P90"], days["weekend"])
-    p_dem_days = permutation_p(pd.Series(daily_arr.values), pd.Series(pd.to_datetime(daily_arr.index).dayofweek >= 5))
+    p_dem_days = permutation_p(pd.Series(daily_arr.values), pd.Series(pd.to_datetime(daily_arr.index).day_of_week >= 5))
     fsi = field_survival_input(W_F)
     fkm = km_from(fsi)
     f_s10 = fkm.set_index("t").loc[10, "still_waiting"]
@@ -2105,7 +2105,7 @@ Three stop-and-time combinations carry **{top3['pax_share'].sum():.0%} of passen
     md(f"""
 {tag('model')} Comparing days needs care: there is **one week**, so **one Friday** and **two weekend days**. Treating thousands of passengers as independent makes any day look “significant”, but passengers on the same day share the same weather, events and fleet. So we compare **days**:
 
-- **Demand** is clearly lower at weekends: every weekend day had fewer arrivals than every weekday ({daily_arr[pd.to_datetime(daily_arr.index).dayofweek >= 5].max():,} vs at least {daily_arr[pd.to_datetime(daily_arr.index).dayofweek < 5].min():,}); a day-level permutation test gives p = {p_dem_days:.3f}, the smallest possible with 5 vs 2 days.
+- **Demand** is clearly lower at weekends: every weekend day had fewer arrivals than every weekday ({daily_arr[pd.to_datetime(daily_arr.index).day_of_week >= 5].max():,} vs at least {daily_arr[pd.to_datetime(daily_arr.index).day_of_week < 5].min():,}); a day-level permutation test gives p = {p_dem_days:.3f}, the smallest possible with 5 vs 2 days.
 - **Waits** are not clearly different: weekend P90s ({", ".join(f"{v:.0f}" for v in days[days['weekend']]['P90'])} min) sit inside the weekday range ({days[~days['weekend']]['P90'].min():.0f}–{days[~days['weekend']]['P90'].max():.0f}); day-level p = {p_wait_days:.2f}. Fewer passengers, but also fewer vehicles.
 - **Friday at New Market**: the 13:00–14:30 queue averaged about 42 people on the one Friday against under 1 person on every other day. One day cannot tell us whether that is a weekly pattern (for example Friday-prayer travel), an event, or rain. It is a lead to check, not a finding.
 """)
