@@ -1,0 +1,8 @@
+boarding_stop,reported_wait_mean_min,reported_wait_n,survey_respondents,observed_wait_mean_min,observed_wait_n,comparison_note,analysis_scope
+BUS STOP,15.5,2,2,7.177770338131905,2987.0,Reported interval midpoints omit open-ended categories; observed waits use completed B2 rows.,Combined dataset and survey responses
+CAMPUS GATE,11.868421052631579,19,21,4.547478162862778,3549.0,Reported interval midpoints omit open-ended categories; observed waits use completed B2 rows.,Combined dataset and survey responses
+HALL,11.75,4,4,1.5866900175131349,571.0,Reported interval midpoints omit open-ended categories; observed waits use completed B2 rows.,Combined dataset and survey responses
+NEW MARKET,9.95,10,10,8.808803301237964,1454.0,Reported interval midpoints omit open-ended categories; observed waits use completed B2 rows.,Combined dataset and survey responses
+OTHER,16.166666666666668,3,3,,,Reported interval midpoints omit open-ended categories; observed waits use completed B2 rows.,Combined dataset and survey responses
+ROAD 7,23.0,2,2,,,Reported interval midpoints omit open-ended categories; observed waits use completed B2 rows.,Combined dataset and survey responses
+SUB,15.777777777777779,9,10,4.471213463241807,1129.0,Reported interval midpoints omit open-ended categories; observed waits use completed B2 rows.,Combined dataset and survey responses
