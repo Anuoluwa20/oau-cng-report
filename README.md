@@ -1,8 +1,10 @@
 # OAU Campus Transport Study
 
-Field study of CNG bus and Keke services at Obafemi Awolowo University, Ile-Ife:
-queues, waiting times (percentiles and survival curves), capacity, fleet availability,
-a validated queue simulation of ways to cut the 90th-percentile wait, and a student survey.
+Study of CNG bus and Keke services at Obafemi Awolowo University, Ile-Ife.
+It combines **field records taken by hand by the team** (late September and 27 October 2026) with a
+**model-estimated week** (26 Oct – 1 Nov 2026) that fills stops and hours not observed. The report keeps the
+two apart, checks the model against the field records, and uses percentiles, survival curves and a queue
+simulation to show where the longest waits come from and how to cut them.
 
 **Live site:** add your Streamlit link here
 
